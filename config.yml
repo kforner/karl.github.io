@@ -1,0 +1,21 @@
+mode     : selfcontained
+framework: purus
+github:
+  user: kforner
+  repo: kforner.github.io
+
+# HIGHLIGHTER SETTINGS
+highlighter: prettify
+hitheme: twitter-bootstrap
+prettify:
+  linenums: true
+
+# WIDGETS
+widgets: [disqus, mathjax]
+disqus:
+  shortname: kfornergithubio
+
+
+
+
+
