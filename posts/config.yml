@@ -1,5 +1,5 @@
 mode     : selfcontained
-framework: purus
+framework: justread
 github:
   user: ramnathv
   repo: poirot

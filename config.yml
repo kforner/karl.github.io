@@ -1,5 +1,5 @@
 mode     : selfcontained
-framework: purus
+framework: justread
 github:
   user: kforner
   repo: kforner.github.io
@@ -12,8 +12,8 @@ prettify:
 
 # WIDGETS
 widgets: [disqus, mathjax]
-disqus:
-  shortname: kfornergithubio
+#disqus:
+#  shortname: kfornergithubio
 
 
 

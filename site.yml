@@ -1,6 +1,6 @@
 title: kforner
-tagline: Blogging Test for Quartz Bio
-logo: ../assets/img/quartzbio_square_logo.png
+tagline: Quartz Bio Blogging Test
+logo: assets/img/quartzbio_square_logo.png
 owner: Karl Forner
 author:
   email: karl.forner@gmail.com
@@ -8,15 +8,15 @@ author:
   firstname: Karl
   lastname: Forner
 
-social:
-  github: ramnathv
+#social:
+#  github: ramnathv
 
 
 # Choose url: / for local development
-url: 
-rawurl: https://raw.github.com/ramnathv/poirotBlog/gh-pages/
+url: /
+#rawurl: https://raw.github.com/ramnathv/poirotBlog/gh-pages/
 # url: /
-URL: http://github.com/ramnathv/poirot
+#URL: http://github.com/ramnathv/poirot
 navigation: 
   - {item: Home, href: index.html}
   - {item: About, href: about.html}
