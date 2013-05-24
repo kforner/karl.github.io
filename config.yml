@@ -1,5 +1,5 @@
 mode     : selfcontained
-framework: justread
+framework: qb_purus
 github:
   user: kforner
   repo: kforner.github.io
@@ -11,7 +11,7 @@ prettify:
   linenums: true
 
 # WIDGETS
-widgets: [disqus, mathjax]
+widgets: [disqus, mathjax, search]
 #disqus:
 #  shortname: kfornergithubio
 

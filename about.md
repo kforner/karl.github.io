@@ -1,10 +1,15 @@
 ---
-title: About Poirot
+title: About
 url: {lib: libraries}
 highlighter: prettify
 hitheme: twitter-bootstrap
 mode: selfcontained
---- &lead
+--- 
+
+This is my test of *Poirot* as my R-related blogging system. 
+
+About Poirot
+-------------------------
 
 [Poirot](http://github.com/ramnathv/blogify) is an elegant, blog aware, static site generator to create, manage and publish websites with reproducible content using [R Markdown](http://www.r-project.org).
 

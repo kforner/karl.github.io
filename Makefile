@@ -13,7 +13,7 @@ clean:
 	rm -rf *.html *.md *.R *~ posts/*.html posts*/.md .cache posts/.cache
  
 preview:
-	python -m SimpleHTTPServer 8080
+	python -m SimpleHTTPServer 8081
 
 deploy:
 	cd $(REPO) && \

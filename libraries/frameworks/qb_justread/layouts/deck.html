@@ -1,0 +1,30 @@
+<!doctype html>
+<!-- deck.html -->
+<html lang="en">	
+<head>
+  {{> head }}
+  {{{ page.stylesheets }}}
+</head>
+<body style='background:url("{{ site.url }}{{ site.background }}") repeat-x center top'>
+<img alt="Title" src="{{ site.url }}{{ site.logo }} " />
+<!--	<header class="clearfix" role="banner">
+		<div class="wrapper">
+    <img alt="Title" src="{{ site.url }}{{ site.logo }} " />
+			<h1 class="huge>"
+      <a href="{{ site.url }}">{{ site.title }}</a></h1>
+		</div>
+	</header> -->
+	
+	<div role="main" class="content clearfix"> 
+    <div class="post wrapper">
+      <h1>{{ page.title }}</h1>
+      <a class='alink' href='{{site.rawurl}}{{page.file}}'>Source</a>    <span>{{ page.date }}</span><br/><br/>
+  
+      {{{ page.content }}}
+      <div id="disqus_thread"></div>
+    </div>
+  </div>
+  {{> footer }}
+</body>
+  {{> javascripts }}
+</html>
