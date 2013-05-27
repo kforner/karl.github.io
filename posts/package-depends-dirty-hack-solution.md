@@ -10,17 +10,17 @@ date: 2013-05-27
 ## Motivation
 
 As stated in the the "Writing R Extensions", the Software for Data Analysis book (aka the R bible), packages should
-whenever possible, to avoid name collision (masking) and ensure trustworthy computations. 
+whenever possible use **Imports** instead of **Depends**, to avoid name collision (masking) and ensure trustworthy computations. 
 See [this discussion on Stackoverflow](http://stackoverflow.com/questions/8637993/better-explanation-of-when-to-use-imports-depends).
 
 ## The problem
 
-So after adopting best practices, and only using **Imports** in my packages, the problem is that some packages _imported_
-do not follow the those best practices and rely on **Depends** for their dependencies, and consequently will not find 
-unless hacked.  
+So after adopting best practices, and only using **Imports** in my packages, the problem is that some _imported_ packages 
+do not follow those best practices and rely on **Depends** for their dependencies, and consequently will not find 
+their dependencies unless hacked.  
 
-Say we are writing a package **MyPkg**, that uses some functions a CRAN package **A**, listing a CRAN package **B** in 
-its Depends.
+Say we are writing a package **MyPkg**, that uses some functions from a CRAN package **A**, which lists a CRAN 
+package **B** in its Depends.
 
 _MyPkg::f_
 ```
@@ -31,14 +31,14 @@ _A::a_
 a <- function() b()
 ```
 
-Executing `f()` will find the function a, explicitly imported from package A. But executing `a()` will die because 
-function **b** can not be found.
+Executing `f()` will find the function `a`, explicitly imported from package A. But executing `a()` will die because 
+function `b` can not be found.
 
 ## analysis
 
-Because B is in A Depends, usually `b()` is found in the search path, where namespace **B** is attached. 
-What can we do to work around this problem.
-Sadly, there is nothing we can do at the package **MyPkg** level, because the problem sits in the **A** namespace.
+Because B is in A Depends, `b()` is normally found in the search path, where namespace **B** is attached. 
+What can we do to work around this problem ?  
+Sadly, there is nothing we can do at the  **MyPkg** package level, since the problem sits in the **A** namespace.
 We could of course lists B in the **MyPkg** Depends, but that is precisely what we want to avoid.
 
 ## the dirty hack solution
@@ -69,8 +69,68 @@ Now our namespaces should look like this:
 ![plot of chunk unnamed-chunk-2](assets/fig/unnamed-chunk-2.png) 
 
 
+## Example
 
-### the implementation
+The above code is not straightforward to test because you need to write packages.  
+This is some reproducible code that illustrates how the hack works, using package **multcomp** that _Depends_ on **mvtnorm**
+
+
+```r
+l <- loadNamespace("multcomp")  # assignment to avoid annoying print
+
+amod <- aov(breaks ~ wool + tension, data = warpbreaks)
+wht <- multcomp::glht(amod, linfct = multcomp::mcp(tension = "Tukey"))
+ci <- confint(wht)  # mvtnorm::qmvt is not found
+```
+
+```
+## Error: could not find function "qmvt"
+```
+
+```r
+
+# let's load the mvtnorm namespace
+l <- loadNamespace("mvtnorm")
+ci <- confint(wht)  # mvtnorm::qmvt still not found
+```
+
+```
+## Error: could not find function "qmvt"
+```
+
+```r
+
+# hack hack hack
+ns1 <- getNamespace("multcomp")
+ns1_imp <- parent.env(ns1)
+parent.env(ns1_imp) <- getNamespace("mvtnorm")
+
+ci <- confint(wht)  # now should work
+print(ci)
+```
+
+```
+## 
+## 	 Simultaneous Confidence Intervals
+## 
+## Multiple Comparisons of Means: Tukey Contrasts
+## 
+## 
+## Fit: aov(formula = breaks ~ wool + tension, data = warpbreaks)
+## 
+## Quantile = 2.415
+## 95% family-wise confidence level
+##  
+## 
+## Linear Hypotheses:
+##            Estimate lwr     upr    
+## M - L == 0 -10.000  -19.354  -0.646
+## H - L == 0 -14.722  -24.076  -5.369
+## H - M == 0  -4.722  -14.076   4.631
+```
+
+
+## implementation of the hack in MyPkg
 
 Just put the re-routing code in your MyPkg **.onLoad** function, defined usually in `R/zzz.R`:
 
@@ -104,4 +164,7 @@ wrong symbol picks if symbols with same name are both defined by B and C.
 
 We'll see in a future post a probably much better solution.
 
-Karl Forner @ Quartz Bio
+
+_Karl Forner @ Quartz Bio_
+
+
