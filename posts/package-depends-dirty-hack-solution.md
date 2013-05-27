@@ -71,8 +71,10 @@ Now our namespaces should look like this:
 
 ## Example
 
-The above code is not straightforward to test because you need to write packages.  
-This is some reproducible code that illustrates how the hack works, using package **multcomp** that _Depends_ on **mvtnorm**
+
+The above code is not straightforward to test because you need to write a package.  
+
+Here is some reproducible code that illustrates how the hack works, using package **multcomp** that _Depends_ on **mvtnorm**
 
 
 ```r
@@ -124,9 +126,9 @@ print(ci)
 ## 
 ## Linear Hypotheses:
 ##            Estimate lwr     upr    
-## M - L == 0 -10.000  -19.354  -0.646
-## H - L == 0 -14.722  -24.076  -5.369
-## H - M == 0  -4.722  -14.076   4.631
+## M - L == 0 -10.000  -19.353  -0.647
+## H - L == 0 -14.722  -24.075  -5.370
+## H - M == 0  -4.722  -14.075   4.630
 ```
 
 

@@ -135,8 +135,9 @@ parent.env(nsa_imp) &lt;- getNamespace(&#39;B&#39;)
 
 <h2>Example</h2>
 
-<p>The above code is not straightforward to test because you need to write packages.<br>
-This is some reproducible code that illustrates how the hack works, using package <strong>multcomp</strong> that <em>Depends</em> on <strong>mvtnorm</strong></p>
+<p>The above code is not straightforward to test because you need to write a package.  </p>
+
+<p>Here is some reproducible code that illustrates how the hack works, using package <strong>multcomp</strong> that <em>Depends</em> on <strong>mvtnorm</strong></p>
 
 <pre><code class="r">l &lt;- loadNamespace(&quot;multcomp&quot;)  # assignment to avoid annoying print
 
@@ -181,9 +182,9 @@ print(ci)
 ## 
 ## Linear Hypotheses:
 ##            Estimate lwr     upr    
-## M - L == 0 -10.000  -19.354  -0.646
-## H - L == 0 -14.722  -24.076  -5.369
-## H - M == 0  -4.722  -14.076   4.631
+## M - L == 0 -10.000  -19.353  -0.647
+## H - L == 0 -14.722  -24.075  -5.370
+## H - M == 0  -4.722  -14.075   4.630
 </code></pre>
 
 <h2>implementation of the hack in MyPkg</h2>

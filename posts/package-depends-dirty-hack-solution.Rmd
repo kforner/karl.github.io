@@ -96,8 +96,10 @@ mtext(outer = TRUE, side = 3, line = -1.5, cex = 1.5, "Namespaces after re-rerou
 
 ## Example
 
+
 The above code is not straightforward to test because you need to write a package.  
-This is some reproducible code that illustrates how the hack works, using package **multcomp** that _Depends_ on **mvtnorm**
+
+Here is some reproducible code that illustrates how the hack works, using package **multcomp** that _Depends_ on **mvtnorm**
 
 ```{r}
 l <- loadNamespace('multcomp') # assignment to avoid annoying print
