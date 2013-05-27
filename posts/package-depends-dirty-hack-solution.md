@@ -69,8 +69,68 @@ Now our namespaces should look like this:
 ![plot of chunk unnamed-chunk-2](assets/fig/unnamed-chunk-2.png) 
 
 
+## Example
 
-### the implementation
+The above code is not straightforward to test because you need to write packages.  
+This is some reproducible code that illustrates how the hack works, using package **multcomp** that _Depends_ on **mvtnorm**
+
+
+```r
+l <- loadNamespace("multcomp")  # assignment to avoid annoying print
+
+amod <- aov(breaks ~ wool + tension, data = warpbreaks)
+wht <- multcomp::glht(amod, linfct = multcomp::mcp(tension = "Tukey"))
+ci <- confint(wht)  # mvtnorm::qmvt is not found
+```
+
+```
+## Error: could not find function "qmvt"
+```
+
+```r
+
+# let's load the mvtnorm namespace
+l <- loadNamespace("mvtnorm")
+ci <- confint(wht)  # mvtnorm::qmvt still not found
+```
+
+```
+## Error: could not find function "qmvt"
+```
+
+```r
+
+# hack hack hack
+ns1 <- getNamespace("multcomp")
+ns1_imp <- parent.env(ns1)
+parent.env(ns1_imp) <- getNamespace("mvtnorm")
+
+ci <- confint(wht)  # now should work
+print(ci)
+```
+
+```
+## 
+## 	 Simultaneous Confidence Intervals
+## 
+## Multiple Comparisons of Means: Tukey Contrasts
+## 
+## 
+## Fit: aov(formula = breaks ~ wool + tension, data = warpbreaks)
+## 
+## Quantile = 2.415
+## 95% family-wise confidence level
+##  
+## 
+## Linear Hypotheses:
+##            Estimate lwr     upr    
+## M - L == 0 -10.000  -19.354  -0.646
+## H - L == 0 -14.722  -24.076  -5.369
+## H - M == 0  -4.722  -14.076   4.631
+```
+
+
+## implementation of the hack in MyPkg
 
 Just put the re-routing code in your MyPkg **.onLoad** function, defined usually in `R/zzz.R`:
 
@@ -104,4 +164,7 @@ wrong symbol picks if symbols with same name are both defined by B and C.
 
 We'll see in a future post a probably much better solution.
 
-Karl Forner @ Quartz Bio
+
+_Karl Forner @ Quartz Bio_
+
+

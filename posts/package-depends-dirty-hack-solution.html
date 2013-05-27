@@ -133,7 +133,60 @@ parent.env(nsa_imp) &lt;- getNamespace(&#39;B&#39;)
 
 <p><img src="assets/fig/unnamed-chunk-2.png" alt="plot of chunk unnamed-chunk-2"> </p>
 
-<h3>the implementation</h3>
+<h2>Example</h2>
+
+<p>The above code is not straightforward to test because you need to write packages.<br>
+This is some reproducible code that illustrates how the hack works, using package <strong>multcomp</strong> that <em>Depends</em> on <strong>mvtnorm</strong></p>
+
+<pre><code class="r">l &lt;- loadNamespace(&quot;multcomp&quot;)  # assignment to avoid annoying print
+
+amod &lt;- aov(breaks ~ wool + tension, data = warpbreaks)
+wht &lt;- multcomp::glht(amod, linfct = multcomp::mcp(tension = &quot;Tukey&quot;))
+ci &lt;- confint(wht)  # mvtnorm::qmvt is not found
+</code></pre>
+
+<pre><code>## Error: could not find function &quot;qmvt&quot;
+</code></pre>
+
+<pre><code class="r">
+# let&#39;s load the mvtnorm namespace
+l &lt;- loadNamespace(&quot;mvtnorm&quot;)
+ci &lt;- confint(wht)  # mvtnorm::qmvt still not found
+</code></pre>
+
+<pre><code>## Error: could not find function &quot;qmvt&quot;
+</code></pre>
+
+<pre><code class="r">
+# hack hack hack
+ns1 &lt;- getNamespace(&quot;multcomp&quot;)
+ns1_imp &lt;- parent.env(ns1)
+parent.env(ns1_imp) &lt;- getNamespace(&quot;mvtnorm&quot;)
+
+ci &lt;- confint(wht)  # now should work
+print(ci)
+</code></pre>
+
+<pre><code>## 
+##   Simultaneous Confidence Intervals
+## 
+## Multiple Comparisons of Means: Tukey Contrasts
+## 
+## 
+## Fit: aov(formula = breaks ~ wool + tension, data = warpbreaks)
+## 
+## Quantile = 2.415
+## 95% family-wise confidence level
+##  
+## 
+## Linear Hypotheses:
+##            Estimate lwr     upr    
+## M - L == 0 -10.000  -19.354  -0.646
+## H - L == 0 -14.722  -24.076  -5.369
+## H - M == 0  -4.722  -14.076   4.631
+</code></pre>
+
+<h2>implementation of the hack in MyPkg</h2>
 
 <p>Just put the re-routing code in your MyPkg <strong>.onLoad</strong> function, defined usually in <code>R/zzz.R</code>:</p>
 
@@ -170,7 +223,7 @@ wrong symbol picks if symbols with same name are both defined by B and C.</p>
 
 <p>We&#39;ll see in a future post a probably much better solution.</p>
 
-<p>Karl Forner @ Quartz Bio</p>
+<p><em>Karl Forner @ Quartz Bio</em></p>
 
               <div id="disqus_thread"></div>
             </li>

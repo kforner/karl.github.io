@@ -97,14 +97,30 @@ mtext(outer = TRUE, side = 3, line = -1.5, cex = 1.5, "Namespaces before")
 ## Example
 
 The above code is not straightforward to test because you need to write packages.  
-This is some reproducible code that illustrates the hack.
+This is some reproducible code that illustrates how the hack works, using package **multcomp** that _Depends_ on **mvtnorm**
 
 ```{r}
-loadNamespace(multcomp)
+l <- loadNamespace('multcomp') # assignment to avoid annoying print
+
+amod <- aov(breaks ~ wool + tension, data = warpbreaks)
+wht <- multcomp::glht(amod, linfct = multcomp::mcp(tension = "Tukey"))
+ci <- confint(wht) # mvtnorm::qmvt is not found
+
+# let's load the mvtnorm namespace
+l <- loadNamespace('mvtnorm')
+ci <- confint(wht) # mvtnorm::qmvt still not found
+
+# hack hack hack
+ns1 <- getNamespace('multcomp')
+ns1_imp <- parent.env(ns1)
+parent.env(ns1_imp) <- getNamespace('mvtnorm')
+
+ci <- confint(wht) # now should work
+print(ci)
 
 ```
 
-## implementation
+## implementation of the hack in MyPkg
 
 Just put the re-routing code in your MyPkg **.onLoad** function, defined usually in `R/zzz.R`:
 
