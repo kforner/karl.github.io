@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>just a test with plots</title>
+  <title>A dirty hack solution for packages using Depends</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="" />
@@ -71,33 +71,106 @@
           <ol id="posts">
             <li class="post">
               <h3>
-                <a href="#">just a test with plots</a>
+                <a href="#">A dirty hack solution for packages using Depends</a>
               </h3>
-              <span>2013-05-10</span><br/>
-               <a class='label label-success' href='/posts/2020-01-01-test.Rmd'>Source</a>
-              
-<p>This is an R Markdown document. Markdown is a simple formatting syntax for authoring web pages (click the <strong>MD</strong> toolbar button for help on Markdown).</p>
+              <span>2013-05-27</span><br/>
+               <a class='label label-success' href='/posts/package-depends-dirty-hack-solution.Rmd'>Source</a>
+              <h2>Motivation</h2>
+<p>As stated in the the &quot;Writing R Extensions&quot;, the Software for Data Analysis book (aka the R bible), packages should
+whenever possible, to avoid name collision (masking) and ensure trustworthy computations. 
+See <a href="http://stackoverflow.com/questions/8637993/better-explanation-of-when-to-use-imports-depends">this discussion on Stackoverflow</a>.</p>
 
-<p>When you click the <strong>Knit HTML</strong> button a web page will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:</p>
+<h2>The problem</h2>
 
-<pre><code class="r">summary(cars)
+<p>So after adopting best practices, and only using <strong>Imports</strong> in my packages, the problem is that some packages <em>imported</em>
+do not follow the those best practices and rely on <strong>Depends</strong> for their dependencies, and consequently will not find 
+unless hacked.  </p>
+
+<p>Say we are writing a package <strong>MyPkg</strong>, that uses some functions a CRAN package <strong>A</strong>, listing a CRAN package <strong>B</strong> in 
+its Depends.</p>
+
+<p><em>MyPkg::f</em></p>
+
+<pre><code>f &lt;- function() a()
 </code></pre>
 
-<pre><code>##      speed           dist    
-##  Min.   : 4.0   Min.   :  2  
-##  1st Qu.:12.0   1st Qu.: 26  
-##  Median :15.0   Median : 36  
-##  Mean   :15.4   Mean   : 43  
-##  3rd Qu.:19.0   3rd Qu.: 56  
-##  Max.   :25.0   Max.   :120
+<p><em>A::a</em></p>
+
+<pre><code>a &lt;- function() b()
 </code></pre>
 
-<p>You can also embed plots, for example:</p>
+<p>Executing <code>f()</code> will find the function a, explicitly imported from package A. But executing <code>a()</code> will die because 
+function <strong>b</strong> can not be found.</p>
 
-<pre><code class="r">plot(cars)
+<h2>analysis</h2>
+
+<p>Because B is in A Depends, usually <code>b()</code> is found in the search path, where namespace <strong>B</strong> is attached. 
+What can we do to work around this problem.
+Sadly, there is nothing we can do at the package <strong>MyPkg</strong> level, because the problem sits in the <strong>A</strong> namespace.
+We could of course lists B in the <strong>MyPkg</strong> Depends, but that is precisely what we want to avoid.</p>
+
+<h2>the dirty hack solution</h2>
+
+<h3>the idea</h3>
+
+<p>I suggest that you first have a look at this very good blog 
+<a href="http://obeautifulcode.com/R/How-R-Searches-And-Finds-Stuff/">How R Searches and Finds Stuff</a> if you need some 
+clarification about namespaces and imports.  </p>
+
+<p>Here is a diagram of the current state of the problem:</p>
+
+<p><img src="assets/fig/unnamed-chunk-1.png" alt="plot of chunk unnamed-chunk-1"> </p>
+
+<p>We want the <code>a()</code> call, which is executed in namespace <strong>A</strong>, to find the <strong>b</strong> symbol in namespace <strong>B</strong>. 
+To achieve this, we will re-route the namespace <strong>A</strong> (actually its Imports namespace) to the <strong>B</strong> namespace:</p>
+
+<pre><code>nsa &lt;- getNamespace(&#39;A&#39;)
+nsa_imp &lt;- parent.env(nsa)
+parent.env(nsa_imp) &lt;- getNamespace(&#39;B&#39;)
 </code></pre>
+
+<p>Now our namespaces should look like this:  </p>
 
 <p><img src="assets/fig/unnamed-chunk-2.png" alt="plot of chunk unnamed-chunk-2"> </p>
+
+<h3>the implementation</h3>
+
+<p>Just put the re-routing code in your MyPkg <strong>.onLoad</strong> function, defined usually in <code>R/zzz.R</code>:</p>
+
+<pre><code>.onLoad &lt;- function(libname, pkgname) {
+    nsa &lt;- getNamespace(&#39;A&#39;)
+    nsa_imp &lt;- parent.env(nsa)
+    parent.env(nsa_imp) &lt;- getNamespace(&#39;B&#39;)    
+}
+</code></pre>
+
+<h3>why dirty ?</h3>
+
+<p>First of all, it uses <code>parent.env&lt;-</code>, and according to the documentation:</p>
+
+<blockquote>
+<p>The replacement function parent.env&lt;- is extremely dangerous as it can be used to destructively change environments in ways &gt;that violate assumptions made by the internal C code. It may be removed in the near future.</p>
+</blockquote>
+
+<p>It is a pity because it can proved extremely useful.</p>
+
+<h3>why a hack ?</h3>
+
+<p>Unfortunately it does not work in the general case. 
+Suppose you need two packages A and D, that both depend on B and C, but with different rules:</p>
+
+<pre><code>A -&gt; B -&gt; C
+D -&gt; C -&gt; B
+</code></pre>
+
+<p>In that case, we would re-route A to B, then B to C. And this is incompatible with the way D is designed, resulting in
+wrong symbol picks if symbols with same name are both defined by B and C.</p>
+
+<h3>so what ?</h3>
+
+<p>We&#39;ll see in a future post a probably much better solution.</p>
+
+<p>Karl Forner @ Quartz Bio</p>
 
               <div id="disqus_thread"></div>
             </li>
