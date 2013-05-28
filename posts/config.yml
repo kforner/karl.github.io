@@ -15,7 +15,8 @@ url:
   assets: ../assets
 
 # WIDGETS
-widgets: [disqus, mathjax]
+#widgets: [disqus, mathjax]
+widgets: [disqus]
 disqus:
   shortname: kfornergithubio
 

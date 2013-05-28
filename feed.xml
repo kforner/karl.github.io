@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rss version="2.0"
+ xmlns:blogChannel="http://backend.userland.com/blogChannelModule"
+>
+
+<channel>
+<title>karl&#x27;s blog</title>
+<link>http://kforner.github.io</link>
+<description>R-related blog</description>
+
+<item>
+<title>A dirty hack solution for packages using Depends</title>
+<link>http://kforner.github.io/posts/package-depends-dirty-hack-solution.html</link>
+<description>A dirty hack solution for packages using Depends</description>
+</item>
+</channel>
+</rss>

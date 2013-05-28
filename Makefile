@@ -15,6 +15,13 @@ clean:
 preview:
 	python -m SimpleHTTPServer 8081
 
+payload.json: payload.RData 
+	scripts/payload_to_json.R > $@
+
+feed.xml: payload.json
+	./scripts/rss.pl $< > $@
+	
+
 deploy:
 	cd $(REPO) && \
 	git init . && \
