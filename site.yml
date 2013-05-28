@@ -17,7 +17,7 @@ author:
 
 
 # Choose url: / for local development
-url: /
+#url: /
 # use e.g. for links on blogs source code (.Rmd)
 rawurl: /
 #rawurl: https://raw.github.com/ramnathv/poirotBlog/gh-pages/
@@ -29,3 +29,4 @@ navigation:
 
 # google custom search engine
 google_search_engine_id: 016732723349564622635:1pee01gdpao
+google_analytics_id: UA-41262764-1

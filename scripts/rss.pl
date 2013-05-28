@@ -27,8 +27,10 @@ $rss->channel(
  );
  
  foreach my $post (@posts) {
+ 	my $html = join('',  map { $_->{html}} @{$post->{slides}} );
+ 	
 	$rss->add_item(title => $post->{title},
-			description => $post->{summary},
+			description => $html,
 	        link => $base . "/" . $post->{link}
 	        
 	);

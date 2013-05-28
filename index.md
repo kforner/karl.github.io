@@ -26,7 +26,7 @@ ul.posts span {
  <li>
   <span class='pull-right'>{{date}}</span> 
   <a href="{{site.url}}{{link}}">{{{ title }}}</a>
-  <hr/>
+  <hr class='light_hr'/>
  </li>
  {{/ date }}
 {{/ pages }}
