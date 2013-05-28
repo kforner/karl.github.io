@@ -120,15 +120,15 @@ print(ci)
 ## 
 ## Fit: aov(formula = breaks ~ wool + tension, data = warpbreaks)
 ## 
-## Quantile = 2.415
+## Quantile = 2.416
 ## 95% family-wise confidence level
 ##  
 ## 
 ## Linear Hypotheses:
 ##            Estimate lwr     upr    
-## M - L == 0 -10.000  -19.353  -0.647
-## H - L == 0 -14.722  -24.075  -5.370
-## H - M == 0  -4.722  -14.075   4.630
+## M - L == 0 -10.000  -19.354  -0.646
+## H - L == 0 -14.722  -24.076  -5.368
+## H - M == 0  -4.722  -14.076   4.632
 ```
 
 
@@ -149,7 +149,7 @@ Just put the re-routing code in your MyPkg **.onLoad** function, defined usually
 First of all, it uses `parent.env<-`, and according to the documentation:
 >The replacement function parent.env<- is extremely dangerous as it can be used to destructively change environments in ways >that violate assumptions made by the internal C code. It may be removed in the near future.
 
-It is a pity because it can proved extremely useful.
+It is a pity because it can be extremely useful.
 
 ### why a hack ?
 

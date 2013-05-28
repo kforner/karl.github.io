@@ -10,7 +10,7 @@ blogify:
 
 
 clean:
-	rm -rf *.html *.md *.R *~ posts/*.html posts*/.md .cache posts/.cache
+	rm -rf *.html *.md *.R *~ posts/*.html posts*/.md .cache posts/.cache payload.RData posts/payload.RData
  
 preview:
 	python -m SimpleHTTPServer 8081

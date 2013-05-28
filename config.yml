@@ -11,7 +11,8 @@ prettify:
   linenums: true
 
 # WIDGETS
-widgets: [disqus, mathjax, search]
+#widgets: [disqus, mathjax, search]
+widgets: [disqus, search]
 #disqus:
 #  shortname: kfornergithubio
 
