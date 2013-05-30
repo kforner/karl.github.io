@@ -3,7 +3,7 @@
 <head>
   
   <!--  qb_minimal/partials/head.html -->
-  <title>A dirty hack solution for packages using Depends</title>
+  <title>A dirty hack for importing packages that use Depends</title>
   
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,7 +35,7 @@
 <A href="/feed.xml"><img alt="Title" src="/assets/img/rss2.png" /></A><div id='page_content'>
 
 	<ul id="page_def">
-		<li id="page_title">A dirty hack solution for packages using Depends</li>
+		<li id="page_title">A dirty hack for importing packages that use Depends</li>
 		<li><BR></li>
 		<li id="page_date">2013-05-27</li>
 		<li><a id='source_link' href='/posts/package-depends-dirty-hack-solution.Rmd'>Source</a> 
@@ -43,8 +43,12 @@
 	</ul>
 
 <div id="post_content">
+<h2>Scope</h2>
+<p>This article is about R package development.</p>
+
 <h2>Motivation</h2>
-<p>As stated in the the &quot;Writing R Extensions&quot;, the Software for Data Analysis book (aka the R bible), packages should
+
+<p>As stated in the the <em>Writing R Extensions</em> manual and the <em>Software for Data Analysis</em> book (aka the R bible), packages should
 whenever possible use <strong>Imports</strong> instead of <strong>Depends</strong>, to avoid name collision (masking) and ensure trustworthy computations. 
 See <a href="http://stackoverflow.com/questions/8637993/better-explanation-of-when-to-use-imports-depends">this discussion on Stackoverflow</a>.</p>
 
@@ -67,12 +71,15 @@ package <strong>B</strong> in its Depends.</p>
 <pre><code>a &lt;- function() b()
 </code></pre>
 
+<p><em>B::b</em>
+b &lt;- function() { ... }</p>
+
 <p>Executing <code>f()</code> will find the function <code>a</code>, explicitly imported from package A. But executing <code>a()</code> will die because 
 function <code>b</code> can not be found.</p>
 
 <h2>analysis</h2>
 
-<p>Because B is in A Depends, <code>b()</code> is normally found in the search path, where namespace <strong>B</strong> is attached. 
+<p>Because B is listed in the Depends of package A, <code>b()</code> is normally found in the <em>search path</em>, where namespace <strong>B</strong> is attached. 
 What can we do to work around this problem ?<br>
 Sadly, there is nothing we can do at the  <strong>MyPkg</strong> package level, since the problem sits in the <strong>A</strong> namespace.
 We could of course lists B in the <strong>MyPkg</strong> Depends, but that is precisely what we want to avoid.</p>
@@ -92,26 +99,32 @@ clarification about namespaces and imports.  </p>
 <p>We want the <code>a()</code> call, which is executed in namespace <strong>A</strong>, to find the <strong>b</strong> symbol in namespace <strong>B</strong>. 
 To achieve this, we will re-route the namespace <strong>A</strong> (actually its Imports namespace) to the <strong>B</strong> namespace:</p>
 
-<pre><code>nsa &lt;- getNamespace(&#39;A&#39;)
-nsa_imp &lt;- parent.env(nsa)
-parent.env(nsa_imp) &lt;- getNamespace(&#39;B&#39;)
+<pre><code>nsa &lt;- getNamespace(&#39;A&#39;)                      # package A environment
+nsa_imp &lt;- parent.env(nsa)                    # package A Imports
+parent.env(nsa_imp) &lt;- getNamespace(&#39;B&#39;)      # re-route A Imports to package B
 </code></pre>
 
 <p>Now our namespaces should look like this:  </p>
 
 <p><img src="assets/fig/unnamed-chunk-2.png" alt="plot of chunk unnamed-chunk-2"> </p>
 
+<p>Notice that the link From A Imports to base has been re-routed towards package B (the arrow labelled &quot;New&quot;)</p>
+
 <h2>Example</h2>
 
 <p>The above code is not straightforward to test because you need to write a package.  </p>
 
-<p>Here is some reproducible code that illustrates how the hack works, using package <strong>multcomp</strong> that <em>Depends</em> on <strong>mvtnorm</strong></p>
+<p>Here is some reproducible code that illustrates how the hack works, so that you can simulate its mechanism
+right now by copy-pasting the following code in your R console.
+This example uses package <strong>multcomp</strong> that <em>Depends</em> on <strong>mvtnorm</strong>. </p>
 
-<pre><code class="r">l &lt;- loadNamespace(&quot;multcomp&quot;)  # assignment to avoid annoying print
+<pre><code class="r">## load multcomp package, and its imports, but do not attach them in the
+## search path
+l &lt;- loadNamespace(&quot;multcomp&quot;)  # assignment to avoid annoying print
 
 amod &lt;- aov(breaks ~ wool + tension, data = warpbreaks)
 wht &lt;- multcomp::glht(amod, linfct = multcomp::mcp(tension = &quot;Tukey&quot;))
-ci &lt;- confint(wht)  # mvtnorm::qmvt is not found
+ci &lt;- confint(wht)  # mvtnorm::qmvt is not found, because mvtnorm is not attached to the search path
 </code></pre>
 
 <pre><code>## Error: could not find function &quot;qmvt&quot;
@@ -120,14 +133,14 @@ ci &lt;- confint(wht)  # mvtnorm::qmvt is not found
 <pre><code class="r">
 # let&#39;s load the mvtnorm namespace
 l &lt;- loadNamespace(&quot;mvtnorm&quot;)
-ci &lt;- confint(wht)  # mvtnorm::qmvt still not found
+ci &lt;- confint(wht)  # mvtnorm::qmvt still not found, mvtnorm is loaded but not attached
 </code></pre>
 
 <pre><code>## Error: could not find function &quot;qmvt&quot;
 </code></pre>
 
 <pre><code class="r">
-# hack hack hack
+# hack hack hack: re-route package multcomp to mvtnorm
 ns1 &lt;- getNamespace(&quot;multcomp&quot;)
 ns1_imp &lt;- parent.env(ns1)
 parent.env(ns1_imp) &lt;- getNamespace(&quot;mvtnorm&quot;)
@@ -150,9 +163,9 @@ print(ci)
 ## 
 ## Linear Hypotheses:
 ##            Estimate lwr     upr    
-## M - L == 0 -10.000  -19.355  -0.645
-## H - L == 0 -14.722  -24.077  -5.367
-## H - M == 0  -4.722  -14.077   4.633
+## M - L == 0 -10.000  -19.354  -0.646
+## H - L == 0 -14.722  -24.077  -5.368
+## H - M == 0  -4.722  -14.077   4.632
 </code></pre>
 
 <h2>implementation of the hack in MyPkg</h2>

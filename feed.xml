@@ -9,10 +9,10 @@
 <title>karl&#x27;s blog</title>
 <link>http://kforner.github.io</link>
 <description>R-related blog</description>
-<lastBuildDate>2013-05-30T14:09:47</lastBuildDate>
+<lastBuildDate>2013-05-30T14:49:02</lastBuildDate>
 
 <item>
-<title>A dirty hack solution for packages using Depends</title>
+<title>A dirty hack for importing packages that use Depends</title>
 <link>http://kforner.github.io/posts/package-depends-dirty-hack-solution.html</link>
 <description>
 
@@ -20,7 +20,7 @@
 &#x3C;link href=&#x22;/http://kforner.github.io/libraries/highlighters/prettify/css/twitter-bootstrap.css&#x22; rel=&#x22;stylesheet&#x22;&#x3E;
 
 	&#x3C;ul id=&#x22;page_def&#x22;&#x3E;
-		&#x3C;li id=&#x22;page_title&#x22;&#x3E;A dirty hack solution for packages using Depends&#x3C;/li&#x3E;
+		&#x3C;li id=&#x22;page_title&#x22;&#x3E;A dirty hack for importing packages that use Depends&#x3C;/li&#x3E;
 		&#x3C;li&#x3E;&#x3C;BR&#x3E;&#x3C;/li&#x3E;
 		&#x3C;li id=&#x22;page_date&#x22;&#x3E;2013-05-27&#x3C;/li&#x3E;
 		&#x3C;li&#x3E;&#x3C;a id=&#x27;source_link&#x27; href=&#x27;/package-depends-dirty-hack-solution.Rmd&#x27;&#x3E;Source&#x3C;/a&#x3E; 
@@ -28,8 +28,12 @@
 	&#x3C;/ul&#x3E;
 
 &#x3C;div id=&#x22;post_content&#x22;&#x3E;
+&#x3C;h2&#x3E;Scope&#x3C;/h2&#x3E;
+&#x3C;p&#x3E;This article is about R package development.&#x3C;/p&#x3E;
+
 &#x3C;h2&#x3E;Motivation&#x3C;/h2&#x3E;
-&#x3C;p&#x3E;As stated in the the &#x26;quot;Writing R Extensions&#x26;quot;, the Software for Data Analysis book (aka the R bible), packages should
+
+&#x3C;p&#x3E;As stated in the the &#x3C;em&#x3E;Writing R Extensions&#x3C;/em&#x3E; manual and the &#x3C;em&#x3E;Software for Data Analysis&#x3C;/em&#x3E; book (aka the R bible), packages should
 whenever possible use &#x3C;strong&#x3E;Imports&#x3C;/strong&#x3E; instead of &#x3C;strong&#x3E;Depends&#x3C;/strong&#x3E;, to avoid name collision (masking) and ensure trustworthy computations. 
 See &#x3C;a href=&#x22;http://stackoverflow.com/questions/8637993/better-explanation-of-when-to-use-imports-depends&#x22;&#x3E;this discussion on Stackoverflow&#x3C;/a&#x3E;.&#x3C;/p&#x3E;
 
@@ -52,12 +56,15 @@ package &#x3C;strong&#x3E;B&#x3C;/strong&#x3E; in its Depends.&#x3C;/p&#x3E;
 &#x3C;pre&#x3E;&#x3C;code&#x3E;a &#x26;lt;- function() b()
 &#x3C;/code&#x3E;&#x3C;/pre&#x3E;
 
+&#x3C;p&#x3E;&#x3C;em&#x3E;B::b&#x3C;/em&#x3E;
+b &#x26;lt;- function() { ... }&#x3C;/p&#x3E;
+
 &#x3C;p&#x3E;Executing &#x3C;code&#x3E;f()&#x3C;/code&#x3E; will find the function &#x3C;code&#x3E;a&#x3C;/code&#x3E;, explicitly imported from package A. But executing &#x3C;code&#x3E;a()&#x3C;/code&#x3E; will die because 
 function &#x3C;code&#x3E;b&#x3C;/code&#x3E; can not be found.&#x3C;/p&#x3E;
 
 &#x3C;h2&#x3E;analysis&#x3C;/h2&#x3E;
 
-&#x3C;p&#x3E;Because B is in A Depends, &#x3C;code&#x3E;b()&#x3C;/code&#x3E; is normally found in the search path, where namespace &#x3C;strong&#x3E;B&#x3C;/strong&#x3E; is attached. 
+&#x3C;p&#x3E;Because B is listed in the Depends of package A, &#x3C;code&#x3E;b()&#x3C;/code&#x3E; is normally found in the &#x3C;em&#x3E;search path&#x3C;/em&#x3E;, where namespace &#x3C;strong&#x3E;B&#x3C;/strong&#x3E; is attached. 
 What can we do to work around this problem ?&#x3C;br&#x3E;
 Sadly, there is nothing we can do at the  &#x3C;strong&#x3E;MyPkg&#x3C;/strong&#x3E; package level, since the problem sits in the &#x3C;strong&#x3E;A&#x3C;/strong&#x3E; namespace.
 We could of course lists B in the &#x3C;strong&#x3E;MyPkg&#x3C;/strong&#x3E; Depends, but that is precisely what we want to avoid.&#x3C;/p&#x3E;
@@ -77,26 +84,32 @@ clarification about namespaces and imports.  &#x3C;/p&#x3E;
 &#x3C;p&#x3E;We want the &#x3C;code&#x3E;a()&#x3C;/code&#x3E; call, which is executed in namespace &#x3C;strong&#x3E;A&#x3C;/strong&#x3E;, to find the &#x3C;strong&#x3E;b&#x3C;/strong&#x3E; symbol in namespace &#x3C;strong&#x3E;B&#x3C;/strong&#x3E;. 
 To achieve this, we will re-route the namespace &#x3C;strong&#x3E;A&#x3C;/strong&#x3E; (actually its Imports namespace) to the &#x3C;strong&#x3E;B&#x3C;/strong&#x3E; namespace:&#x3C;/p&#x3E;
 
-&#x3C;pre&#x3E;&#x3C;code&#x3E;nsa &#x26;lt;- getNamespace(&#x26;#39;A&#x26;#39;)
-nsa_imp &#x26;lt;- parent.env(nsa)
-parent.env(nsa_imp) &#x26;lt;- getNamespace(&#x26;#39;B&#x26;#39;)
+&#x3C;pre&#x3E;&#x3C;code&#x3E;nsa &#x26;lt;- getNamespace(&#x26;#39;A&#x26;#39;)                      # package A environment
+nsa_imp &#x26;lt;- parent.env(nsa)                    # package A Imports
+parent.env(nsa_imp) &#x26;lt;- getNamespace(&#x26;#39;B&#x26;#39;)      # re-route A Imports to package B
 &#x3C;/code&#x3E;&#x3C;/pre&#x3E;
 
 &#x3C;p&#x3E;Now our namespaces should look like this:  &#x3C;/p&#x3E;
 
 &#x3C;p&#x3E;&#x3C;img src=&#x22;http://kforner.github.io/posts/assets/fig/unnamed-chunk-2.png&#x22; alt=&#x22;plot of chunk unnamed-chunk-2&#x22;&#x3E; &#x3C;/p&#x3E;
 
+&#x3C;p&#x3E;Notice that the link From A Imports to base has been re-routed towards package B (the arrow labelled &#x26;quot;New&#x26;quot;)&#x3C;/p&#x3E;
+
 &#x3C;h2&#x3E;Example&#x3C;/h2&#x3E;
 
 &#x3C;p&#x3E;The above code is not straightforward to test because you need to write a package.  &#x3C;/p&#x3E;
 
-&#x3C;p&#x3E;Here is some reproducible code that illustrates how the hack works, using package &#x3C;strong&#x3E;multcomp&#x3C;/strong&#x3E; that &#x3C;em&#x3E;Depends&#x3C;/em&#x3E; on &#x3C;strong&#x3E;mvtnorm&#x3C;/strong&#x3E;&#x3C;/p&#x3E;
+&#x3C;p&#x3E;Here is some reproducible code that illustrates how the hack works, so that you can simulate its mechanism
+right now by copy-pasting the following code in your R console.
+This example uses package &#x3C;strong&#x3E;multcomp&#x3C;/strong&#x3E; that &#x3C;em&#x3E;Depends&#x3C;/em&#x3E; on &#x3C;strong&#x3E;mvtnorm&#x3C;/strong&#x3E;. &#x3C;/p&#x3E;
 
-&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;l &#x26;lt;- loadNamespace(&#x26;quot;multcomp&#x26;quot;)  # assignment to avoid annoying print
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;## load multcomp package, and its imports, but do not attach them in the
+## search path
+l &#x26;lt;- loadNamespace(&#x26;quot;multcomp&#x26;quot;)  # assignment to avoid annoying print
 
 amod &#x26;lt;- aov(breaks ~ wool + tension, data = warpbreaks)
 wht &#x26;lt;- multcomp::glht(amod, linfct = multcomp::mcp(tension = &#x26;quot;Tukey&#x26;quot;))
-ci &#x26;lt;- confint(wht)  # mvtnorm::qmvt is not found
+ci &#x26;lt;- confint(wht)  # mvtnorm::qmvt is not found, because mvtnorm is not attached to the search path
 &#x3C;/code&#x3E;&#x3C;/pre&#x3E;
 
 &#x3C;pre&#x3E;&#x3C;code&#x3E;## Error: could not find function &#x26;quot;qmvt&#x26;quot;
@@ -105,14 +118,14 @@ ci &#x26;lt;- confint(wht)  # mvtnorm::qmvt is not found
 &#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;
 # let&#x26;#39;s load the mvtnorm namespace
 l &#x26;lt;- loadNamespace(&#x26;quot;mvtnorm&#x26;quot;)
-ci &#x26;lt;- confint(wht)  # mvtnorm::qmvt still not found
+ci &#x26;lt;- confint(wht)  # mvtnorm::qmvt still not found, mvtnorm is loaded but not attached
 &#x3C;/code&#x3E;&#x3C;/pre&#x3E;
 
 &#x3C;pre&#x3E;&#x3C;code&#x3E;## Error: could not find function &#x26;quot;qmvt&#x26;quot;
 &#x3C;/code&#x3E;&#x3C;/pre&#x3E;
 
 &#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;
-# hack hack hack
+# hack hack hack: re-route package multcomp to mvtnorm
 ns1 &#x26;lt;- getNamespace(&#x26;quot;multcomp&#x26;quot;)
 ns1_imp &#x26;lt;- parent.env(ns1)
 parent.env(ns1_imp) &#x26;lt;- getNamespace(&#x26;quot;mvtnorm&#x26;quot;)
@@ -135,9 +148,9 @@ print(ci)
 ## 
 ## Linear Hypotheses:
 ##            Estimate lwr     upr    
-## M - L == 0 -10.000  -19.354  -0.646
-## H - L == 0 -14.722  -24.076  -5.368
-## H - M == 0  -4.722  -14.076   4.632
+## M - L == 0 -10.000  -19.355  -0.645
+## H - L == 0 -14.722  -24.077  -5.367
+## H - M == 0  -4.722  -14.077   4.633
 &#x3C;/code&#x3E;&#x3C;/pre&#x3E;
 
 &#x3C;h2&#x3E;implementation of the hack in MyPkg&#x3C;/h2&#x3E;

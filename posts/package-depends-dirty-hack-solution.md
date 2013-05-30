@@ -1,15 +1,19 @@
 ---
-title: A dirty hack solution for packages using Depends
+title: A dirty hack for importing packages that use Depends
 author: Karl Forner
 license: GPL (>= 2)
 tags: package namespace imports depends
-summary: A dirty hack solution for packages using Depends
+summary: A dirty hack for importing packages that use Depends
 date: 2013-05-27
 ---
 
+## Scope
+
+This article is about R package development.
+
 ## Motivation
 
-As stated in the the "Writing R Extensions", the Software for Data Analysis book (aka the R bible), packages should
+As stated in the the _Writing R Extensions_ manual and the _Software for Data Analysis_ book (aka the R bible), packages should
 whenever possible use **Imports** instead of **Depends**, to avoid name collision (masking) and ensure trustworthy computations. 
 See [this discussion on Stackoverflow](http://stackoverflow.com/questions/8637993/better-explanation-of-when-to-use-imports-depends).
 
@@ -31,12 +35,16 @@ _A::a_
 a <- function() b()
 ```
 
+_B::b_
+b <- function() { ... }
+
+
 Executing `f()` will find the function `a`, explicitly imported from package A. But executing `a()` will die because 
 function `b` can not be found.
 
 ## analysis
 
-Because B is in A Depends, `b()` is normally found in the search path, where namespace **B** is attached. 
+Because B is listed in the Depends of package A, `b()` is normally found in the _search path_, where namespace **B** is attached. 
 What can we do to work around this problem ?  
 Sadly, there is nothing we can do at the  **MyPkg** package level, since the problem sits in the **A** namespace.
 We could of course lists B in the **MyPkg** Depends, but that is precisely what we want to avoid.
@@ -59,9 +67,9 @@ Here is a diagram of the current state of the problem:
 We want the `a()` call, which is executed in namespace **A**, to find the **b** symbol in namespace **B**. 
 To achieve this, we will re-route the namespace **A** (actually its Imports namespace) to the **B** namespace:
 ```
-nsa <- getNamespace('A')
-nsa_imp <- parent.env(nsa)
-parent.env(nsa_imp) <- getNamespace('B')
+nsa <- getNamespace('A')                      # package A environment
+nsa_imp <- parent.env(nsa)                    # package A Imports
+parent.env(nsa_imp) <- getNamespace('B')      # re-route A Imports to package B
 ```
 
 Now our namespaces should look like this:  
@@ -69,20 +77,26 @@ Now our namespaces should look like this:
 ![plot of chunk unnamed-chunk-2](assets/fig/unnamed-chunk-2.png) 
 
 
+Notice that the link From A Imports to base has been re-routed towards package B (the arrow labelled "New")
+
 ## Example
 
 
 The above code is not straightforward to test because you need to write a package.  
 
-Here is some reproducible code that illustrates how the hack works, using package **multcomp** that _Depends_ on **mvtnorm**
+Here is some reproducible code that illustrates how the hack works, so that you can simulate its mechanism
+right now by copy-pasting the following code in your R console.
+This example uses package **multcomp** that _Depends_ on **mvtnorm**. 
 
 
 ```r
+## load multcomp package, and its imports, but do not attach them in the
+## search path
 l <- loadNamespace("multcomp")  # assignment to avoid annoying print
 
 amod <- aov(breaks ~ wool + tension, data = warpbreaks)
 wht <- multcomp::glht(amod, linfct = multcomp::mcp(tension = "Tukey"))
-ci <- confint(wht)  # mvtnorm::qmvt is not found
+ci <- confint(wht)  # mvtnorm::qmvt is not found, because mvtnorm is not attached to the search path
 ```
 
 ```
@@ -93,7 +107,7 @@ ci <- confint(wht)  # mvtnorm::qmvt is not found
 
 # let's load the mvtnorm namespace
 l <- loadNamespace("mvtnorm")
-ci <- confint(wht)  # mvtnorm::qmvt still not found
+ci <- confint(wht)  # mvtnorm::qmvt still not found, mvtnorm is loaded but not attached
 ```
 
 ```
@@ -102,7 +116,7 @@ ci <- confint(wht)  # mvtnorm::qmvt still not found
 
 ```r
 
-# hack hack hack
+# hack hack hack: re-route package multcomp to mvtnorm
 ns1 <- getNamespace("multcomp")
 ns1_imp <- parent.env(ns1)
 parent.env(ns1_imp) <- getNamespace("mvtnorm")
@@ -126,9 +140,9 @@ print(ci)
 ## 
 ## Linear Hypotheses:
 ##            Estimate lwr     upr    
-## M - L == 0 -10.000  -19.355  -0.645
-## H - L == 0 -14.722  -24.077  -5.367
-## H - M == 0  -4.722  -14.077   4.633
+## M - L == 0 -10.000  -19.354  -0.646
+## H - L == 0 -14.722  -24.077  -5.368
+## H - M == 0  -4.722  -14.077   4.632
 ```
 
 
