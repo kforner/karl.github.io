@@ -120,15 +120,15 @@ print(ci)
 ## 
 ## Fit: aov(formula = breaks ~ wool + tension, data = warpbreaks)
 ## 
-## Quantile = 2.415
+## Quantile = 2.416
 ## 95% family-wise confidence level
 ##  
 ## 
 ## Linear Hypotheses:
 ##            Estimate lwr     upr    
-## M - L == 0 -10.000  -19.352  -0.648
-## H - L == 0 -14.722  -24.075  -5.370
-## H - M == 0  -4.722  -14.075   4.630
+## M - L == 0 -10.000  -19.354  -0.646
+## H - L == 0 -14.722  -24.076  -5.368
+## H - M == 0  -4.722  -14.076   4.632
 ```
 
 

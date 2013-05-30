@@ -1,48 +1,13 @@
-<!DOCTYPE html>
-<html>
-<head>
-  
-  <!--  qb_minimal/partials/head.html -->
-  <title>A dirty hack solution for packages using Depends</title>
-  
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="" />
-  <meta name="author" content="karl.forner@gmail.com,kforner,Karl,Forner">
-  <link rel="shortcut icon" href="">
-  
-    
-  <link href="/../libraries/frameworks/qb/css/main.css" rel="stylesheet" />
-  <link href="/../libraries/highlighters/prettify/css/twitter-bootstrap.css" rel="stylesheet">
-   
-  
-  <!--
-  <link href='http://fonts.googleapis.com/css?family=Raleway:400,600,200,800' rel='stylesheet' type='text/css'>
-  <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
-  <link href='http://fonts.googleapis.com/css?family=Droid+Sans' rel='stylesheet' type='text/css'>
-    -->
-  
-  
-<!-- google analytics -->
-<script>
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-  ga('create', 'UA-41262764-1', 'kforner.github.io');
-  ga('send', 'pageview');
-</script>
-</head>
-<body>
-	<H1> QB THEME !!!</H1>
 
+<link href="http://kforner.github.io/libraries/frameworks/qb_rss/css/main.css" rel="stylesheet" />
+<link href="http://kforner.github.io/libraries/highlighters/prettify/css/twitter-bootstrap.css" rel="stylesheet">
 
 	<ul id="page_def">
 		<li id="page_title">A dirty hack solution for packages using Depends</li>
 		<li><BR></li>
 		<li id="page_date">2013-05-27</li>
-		<li><a id='source_link' href='/posts/package-depends-dirty-hack-solution.Rmd'>Source</a> 
+		<li><a id='source_link' href='/package-depends-dirty-hack-solution.Rmd'>Source</a> 
 		</li>
 	</ul>
 
@@ -91,7 +56,7 @@ clarification about namespaces and imports.  </p>
 
 <p>Here is a diagram of the current state of the problem:</p>
 
-<p><img src="assets/fig/unnamed-chunk-1.png" alt="plot of chunk unnamed-chunk-1"> </p>
+<p><img src="http://kforner.github.io/posts/assets/fig/unnamed-chunk-1.png" alt="plot of chunk unnamed-chunk-1"> </p>
 
 <p>We want the <code>a()</code> call, which is executed in namespace <strong>A</strong>, to find the <strong>b</strong> symbol in namespace <strong>B</strong>. 
 To achieve this, we will re-route the namespace <strong>A</strong> (actually its Imports namespace) to the <strong>B</strong> namespace:</p>
@@ -103,7 +68,7 @@ parent.env(nsa_imp) &lt;- getNamespace(&#39;B&#39;)
 
 <p>Now our namespaces should look like this:  </p>
 
-<p><img src="assets/fig/unnamed-chunk-2.png" alt="plot of chunk unnamed-chunk-2"> </p>
+<p><img src="http://kforner.github.io/posts/assets/fig/unnamed-chunk-2.png" alt="plot of chunk unnamed-chunk-2"> </p>
 
 <h2>Example</h2>
 
@@ -148,15 +113,15 @@ print(ci)
 ## 
 ## Fit: aov(formula = breaks ~ wool + tension, data = warpbreaks)
 ## 
-## Quantile = 2.415
+## Quantile = 2.416
 ## 95% family-wise confidence level
 ##  
 ## 
 ## Linear Hypotheses:
 ##            Estimate lwr     upr    
-## M - L == 0 -10.000  -19.352  -0.648
-## H - L == 0 -14.722  -24.075  -5.370
-## H - M == 0  -4.722  -14.075   4.630
+## M - L == 0 -10.000  -19.354  -0.646
+## H - L == 0 -14.722  -24.076  -5.368
+## H - M == 0  -4.722  -14.076   4.632
 </code></pre>
 
 <h2>implementation of the hack in MyPkg</h2>
@@ -199,41 +164,3 @@ wrong symbol picks if symbols with same name are both defined by B and C.</p>
 <p><em>Karl Forner @ Quartz Bio</em></p>
 
 </div>
-
-<div id="disqus_thread"></div>
-
-		<div class="pagination">
-			<ul>
-				<li><a href="">&#171; Back Home</a></li>
-			</ul>
-		</div>
-	</div>
-
-
-<script>
-    var disqus_developer = 1;
-    var disqus_shortname = 'kfornergithubio'; 
-    // required: replace example with your forum shortname
-    /* * * DON'T EDIT BELOW THIS LINE * * */
-    (function() {
-        var dsq = document.createElement('script'); 
-        dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] || 
-         document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<!-- Google Prettify -->
-<script src="http://cdnjs.cloudflare.com/ajax/libs/prettify/188.0.0/prettify.js"></script>
-<script src='../libraries/highlighters/prettify/js/lang-r.js'></script>
-<script>
-  var pres = document.getElementsByTagName("pre");
-  for (var i=0; i < pres.length; ++i) {
-    pres[i].className = "prettyprint linenums";
-  }
-  prettyPrint();
-</script>
-<!-- End Google Prettify --> 
-</body>
-</html>
