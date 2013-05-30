@@ -1,8 +1,5 @@
 mode     : selfcontained
 framework: qb
-github:
-  user: ramnathv
-  repo: poirot
 
 # HIGHLIGHTER SETTINGS
 highlighter: prettify

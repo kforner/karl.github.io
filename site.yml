@@ -1,6 +1,6 @@
 title: Karl's Blog
-tagline: Karl Blogging Test
-#logo: assets/img/quartzbio_square_logo.png
+
+logo: assets/img/quartzbio_square_logo.png
 #logo: assets/img/qb_horizontal_logo.jpg
 background: assets/img/bgr-numerique.jpg
 feed_img: img/rss.gif
@@ -17,7 +17,7 @@ author:
 
 
 # Choose url: / for local development
-url: 
+url: /
 #url: http://kforner.github.io
 # use e.g. for links on blogs source code (.Rmd)
 rawurl: /
