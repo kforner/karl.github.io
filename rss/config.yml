@@ -1,8 +1,5 @@
 mode     : selfcontained
-framework: qb
-github:
-  user: kforner
-  repo: kforner.github.io
+framework: qb_rss
 
 # HIGHLIGHTER SETTINGS
 highlighter: prettify
@@ -10,12 +7,15 @@ hitheme: twitter-bootstrap
 prettify:
   linenums: true
 
+url:
+  lib: ../libraries
+  assets: ../assets
+
 # WIDGETS
-#widgets: [disqus, mathjax, search]
-widgets: [disqus, search]
+#widgets: [disqus, mathjax]
+widgets: []
 #disqus:
 #  shortname: kfornergithubio
-
 
 
 

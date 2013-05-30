@@ -17,12 +17,12 @@ author:
 
 
 # Choose url: / for local development
-#url: /
+url: 
+#url: http://kforner.github.io
 # use e.g. for links on blogs source code (.Rmd)
 rawurl: /
 #rawurl: https://raw.github.com/ramnathv/poirotBlog/gh-pages/
-# url: /
-#URL: http://github.com/ramnathv/poirot
+
 navigation: 
   - {item: Home, href: index.html}
   - {item: About, href: about.html}

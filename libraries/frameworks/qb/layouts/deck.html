@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  {{> head }}
+
+</head>
+<body>
+	<H1> QB THEME !!!</H1>
+
+
+	<ul id="page_def">
+		<li id="page_title">{{page.title}}</li>
+		<li><BR></li>
+		<li id="page_date">{{ page.date }}</li>
+		<li><a id='source_link' href='{{site.rawurl}}{{page.file}}'>Source</a> 
+		</li>
+	</ul>
+
+<div id="post_content">
+{{{page.content}}}
+</div>
+
+<div id="disqus_thread"></div>
+
+		<div class="pagination">
+			<ul>
+				<li><a href="{{site.url}}">&#171; Back Home</a></li>
+			</ul>
+		</div>
+	</div>
+
+
+{{> javascripts }}
+</body>
+</html>

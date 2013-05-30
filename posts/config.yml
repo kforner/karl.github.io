@@ -1,5 +1,5 @@
 mode     : selfcontained
-framework: qb_minimal
+framework: qb
 github:
   user: ramnathv
   repo: poirot
