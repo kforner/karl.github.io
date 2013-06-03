@@ -97,24 +97,10 @@ l <- loadNamespace("multcomp")  # assignment to avoid annoying print
 amod <- aov(breaks ~ wool + tension, data = warpbreaks)
 wht <- multcomp::glht(amod, linfct = multcomp::mcp(tension = "Tukey"))
 ci <- confint(wht)  # mvtnorm::qmvt is not found, because mvtnorm is not attached to the search path
-```
-
-```
-## Error: could not find function "qmvt"
-```
-
-```r
 
 # let's load the mvtnorm namespace
 l <- loadNamespace("mvtnorm")
 ci <- confint(wht)  # mvtnorm::qmvt still not found, mvtnorm is loaded but not attached
-```
-
-```
-## Error: could not find function "qmvt"
-```
-
-```r
 
 # hack hack hack: re-route package multcomp to mvtnorm
 ns1 <- getNamespace("multcomp")
@@ -134,15 +120,15 @@ print(ci)
 ## 
 ## Fit: aov(formula = breaks ~ wool + tension, data = warpbreaks)
 ## 
-## Quantile = 2.416
+## Quantile = 2.415
 ## 95% family-wise confidence level
 ##  
 ## 
 ## Linear Hypotheses:
 ##            Estimate lwr     upr    
 ## M - L == 0 -10.000  -19.354  -0.646
-## H - L == 0 -14.722  -24.077  -5.368
-## H - M == 0  -4.722  -14.077   4.632
+## H - L == 0 -14.722  -24.076  -5.369
+## H - M == 0  -4.722  -14.076   4.631
 ```
 
 

@@ -1,0 +1,236 @@
+---
+title: Combine car, multcomp and phia to perform smarter linear modeling
+author: Marc Lamarine
+license: GPL (>= 2)
+tags: linear model, univariate 
+summary: How to combine functions of several linear modelling packages and benefit from all
+date: 2013-05-27
+---
+
+
+
+```{r,  eval=TRUE, results='hide', warning=FALSE, message=FALSE}
+library(multcomp)
+library(car)
+library(effects)
+library(phia)
+```
+
+Combine car, multcomp and phia to perform smarter linear modeling.
+=====================================
+These examples have been largely inpired by Helios De Rosario-Martinez <helios.derosario at ibv.upv.es> [vignette](http://cran.r-project.org/web/packages/phia/vignettes/phia.pdf) from the [phia](http://cran.r-project.org/web/packages/phia/index.html). I recommend as well as the reading of [mutlcomp](http://cran.r-project.org/web/packages/multcomp/) textbook: [Multiple Comparisons Using R](http://www.amazon.co.uk/gp/product/1584885742/) from Multiple Comparisons from Torsten Hothorn, Frank Bretz and Peter Westfall. The [car](http://socserv.socsci.mcmaster.ca/jfox/Books/Companion/index.html ressource is obviously a place to be :-).
+
+
+.The Boik data set from **phia** is based on the hypothetical example used by R.J. Boik (1979) to explain the analysis of interaction contrasts. It represents the electrodermal response of 72 students complaining of hemophobia, treated with different fear reduction therapies and doses of antianxiety medication, in a balanced factorial design. The response variable **edr** is modeled with two factors **therapy**, with levels control, T1, and 
+T2 and **medication**, with levels placebo, D1, D2, and D3 in interaction.
+
+Introduction
+-------------------------
+```{r, tidy.opts=list(keep.blank.line=FALSE, width.cutoff=400)}
+some(Boik)
+table(Boik[,1:2])
+```
+I chose to tweak a bit this data set to avoid using the medication as an ordered factor to ease my interpretation 
+of linear models outputs.
+
+```{r, tidy.opts=list(keep.blank.line=FALSE, width.cutoff=400)}
+Boik$medF <- factor(as.character(Boik$medication), levels=c('placebo', 'D1', 'D2', 'D3'))
+levels(Boik$medF)
+```
+
+Fit two models with interaction and main effects only
+-------------------------
+```{r, tidy.opts=list(keep.blank.line=FALSE, width.cutoff=400)}
+mod.boik   <- lm(edr ~ therapy*medF, data=Boik)
+mod.boik.M <- lm(edr ~ therapy + medF, data=Boik)
+summary(mod.boik)
+Anova(mod.boik)
+```
+
+
+Use allEffects(), and interactionMeans() to compute cells and marginal means
+-------------------------
+
+```{r}
+boik.means <-interactionMeans(mod.boik)
+boik.means
+interactionMeans(mod.boik, factors="therapy")
+
+interactionMeans(mod.boik,  factors="medF")
+
+```
+Several type of interaction plots  are available to visualise the 'interaction effect'
+```{r}
+plot(boik.means, multiple=TRUE)
+
+
+plot(allEffects(mod.boik))
+```
+
+
+The phia package is remarkebly designed to compute  various contrasts of interests using testInteractions() function.
+-------------------------
+
+The columns medication1, . . . medication3 in the resulting table contain the value of the three
+orthogonal contrasts across the levels of medication, for each level of therapy (the only fixed factor
+in this example). In addition a F test (actually a global F test) is performed for each level of therapy
+
+
+```{r}
+testInteractions(mod.boik, fixed="therapy", across="medF", adjustment='none')
+
+```
+Behind the scene, **testInteractions()** calls **testFactors()**. The ones corresponding to the one above are detailed below.
+```{r}
+con.therapy <- testFactors(mod.boik, levels=list(therapy=c('control')), terms.formula=~medF,adjustment='none' )
+```
+```{r, results='hide', warning=FALSE, message=FALSE}
+testFactors(mod.boik, levels=list(therapy=c('T1')), terms.formula=~medF, adjustment='none')
+testFactors(mod.boik, levels=list(therapy=c('T2')), terms.formula=~medF, adjustment='none')
+```
+The cont.therapy ob
+```{r}
+con.therapy
+names(con.therapy)
+```
+It contains notably the hypothesis matrix done for a **global F test** that test the non equality of the edr value for the designated therapy level across levels of medication. 
+```{r}
+con.therapy$terms$`(Intercept)`$adjusted.values
+con.therapy$terms$medF$adjusted.values
+con.therapy$terms$medF$hypothesis.matrix
+```
+
+The default contrasts definition used in the testInteractions() and testFactors() are takken from their default.contrasts=c("contr.sum","contr.poly"), which is usually not the ones that were used by default in R (see below and the **mod.boik** model).
+This is very  **important** as it ensures that F tests and global F tests are meaningfull.
+```{r}
+options('contrasts')
+contr.sum(levels(Boik$medF))
+contr.treatment(levels(Boik$medF))
+```
+
+The therapy adjusted.values are computed using the folowing algebra.
+```{r}
+# using the hypothesis matrix
+con.therapy$terms$medF$hypothesis.matrix %*% coef(mod.boik) 
+# which correponds to a contrasts sum options
+t(contr.sum(levels(Boik$medF))[-c(1),]) %*% coef(mod.boik)[c(4:6)]
+# the default contrast (the one used in the model and summary output) are reprouced below
+t(contr.treatment(levels(Boik$medF))[-c(1),]) %*% coef(mod.boik)[c(2:4)]
+```
+
+
+How to obtain the same results with different functions
+======================================================================================================================================
+Especially, how to reproduce classic univariates results.
+
+
+Obtain Anova global F interaction test with **linearHypothesis()**.
+-------------------------
+```{r}
+coefs <- coefficients(mod.boik)
+coefs
+linearHypothesis(mod.boik, names(coefs)[7:12], verbose=TRUE)
+```
+
+Obtain univariate linear model coefficients statistics done with **summary()** with **testFactors()**
+-------------------------
+```{r}
+summary(mod.boik)
+testFactors(mod.boik, levels=list(therapy=c('T1', 'control'), medF='placebo'), adjustment='none')$terms[['(Intercept)']]$test
+testFactors(mod.boik, levels=list(therapy=c('T2', 'control'), medF='placebo'), adjustment='none')$terms[['(Intercept)']]$test
+testFactors(mod.boik, levels=list(medF=c('D1', 'placebo'), therapy='control'), adjustment='none')$terms[['(Intercept)']]$test
+testFactors(mod.boik, levels=list(medF=c('D2', 'placebo'), therapy='control'), adjustment='none')$terms[['(Intercept)']]$test
+# D3 versus placebo in control group.
+testFactors(mod.boik, levels=list(medF=c('D3', 'placebo'), therapy='control'), adjustment='none')$terms[['(Intercept)']]$adjusted.values
+testFactors(mod.boik, levels=list(medF=c('D3', 'placebo'), therapy='control'), adjustment='none')$terms[['(Intercept)']]$test
+# match the meanInteractions data.frame
+boik.means[10, 3] - boik.means[1, 3] 
+```
+
+**testInteractions()** can compute pairwise contrasts very fluidly **BUT**
+-------------------------
+First remember that the testInteraction must used orthonomal contrasts (default.contrasts=c("contr.sum","contr.poly")).
+Below, despites the fact that all pairwise combinations were performed, the adjusted means don't correspond 
+straightforwardly  to the 'classic' all pairwise group differences
+```{r}
+testInteractions(mod.boik, pairwise="therapy", across="medF", adjustment='none')
+```
+It you're in hurry, you could tweak the call, by changing the default contrasts, **BUT THEN THE F GLOBAL TEST ARE NOT MEANINGFUL ANYMORE**
+So don't do that except if you know what you are doing.
+```{r}
+#  !!! THE F TEST IN EACH ROW ARE NOT MEANINGFUL -----------------------------------------------------------------------------------------------
+testInteractions(mod.boik, pairwise="therapy", across="medF",  adjustment='none', default.contrasts=c("contr.treatment","contr.poly"))
+
+testFactors(mod.boik, levels=list(therapy=c('T1', 'T2'), medF='D1'), adjustment='none')$terms[['(Intercept)']]$adjusted.values
+testFactors(mod.boik, levels=list(therapy=c('T1', 'T2'), medF='D2'), adjustment='none')$terms[['(Intercept)']]$adjusted.values
+
+```
+testInteractions() and the **custom** argument.
+-------------------------
+First, as ususal testInteractions() makes calls to testFactors. Without any arguments specified, it does the folowing default comparisons.
+```{r}
+testInteractions(mod.boik, adjustment='none')
+testFactors(mod.boik, levels=list(therapy=c('T1', 'T2'), medF=c('D1', 'D2')), adjustment='none')$terms[['(Intercept)']]
+# But We can compare the calculations and see how testInteraction calls testFactors()
+testInteractions(mod.boik, adjustment='none')[12,]
+testFactors(mod.boik, levels=list(therapy=c('T1', 'T2'), medF=c('D1', 'D2')), adjustment='none')$terms[['(Intercept)']]$adjusted.values
+testFactors(mod.boik, levels=list(therapy=c('T1', 'T2'), medF=c('D1', 'D2')), adjustment='none')$terms[['(Intercept)']]$test["Pr(>F)"]
+```
+We can build custom contrast matrices. The code is directly inspired from testFactors() one.
+```{r}
+faclist <- lapply(Boik[,1:2], levels)
+faclist
+facmat.sum  <- lapply(faclist, contr.sum) # default contr.sum matrices used by testFactors()
+facmat.sum
+T1.T2.vs.Placebo.D3 <- list(therapy=facmat.sum$therapy[,2, drop=F], medF=facmat.sum$medication[,1, drop=F])
+T1.T2.vs.Placebo.D3
+testInteractions(mod.boik, custom=T1.T2.vs.Placebo.D3, adjustment='none')
+testInteractions(mod.boik, custom=T1.T2.vs.Placebo.D3, adjustment='none')$Value
+testInteractions(mod.boik, custom=T1.T2.vs.Placebo.D3, adjustment='none')[["Pr(>F)"]]
+```
+Hypothesis matrix  (from testFactors() calls) can be reinjected  in the glht framework.
+-------------------------
+```{r}
+K1 <- summary(testFactors(mod.boik, levels=list(therapy=c('T1', 'T2'), medF='D2'), adjustment='none'))
+K2 <- summary(testFactors(mod.boik, levels=list(therapy=c('T1', 'control'), medF='placebo'), adjustment='none')) # This is a default contrast (compute in summary.lm and confint.lm)
+K  <- rbind(K1$hypothesis.matrix, lfinfct=K2$hypothesis.matrix)
+row.names(K) <- c('T1.vs.T2.in.D2', 'T1.vs.control.in.placebo')
+set.seed(1)
+# The contrast matrix extracted from the testFactors result can be used in place
+set.seed(1)
+glht.2   <- glht(mod.boik, linfct=as.matrix(K))
+# use glht to compute user defined contrasts with the benefit of joint confidence interval estimates and multiple testing correction.
+summary(glht.2)
+confint(glht.2)
+```
+These result are *obviously* different from the ones obtained with univariate methods with no correction for multiple testing.
+```{r}
+mod.boik
+confint(mod.boik)[2,] # This is 'T1.vs.control.in.placebo' default contrast (computed in summary.lm and confint.lm)
+```
+
+Obtain non corrected for multiple testing  p-values and univariate confidence intervals with glht
+-------------------------------------------
+There is unfortunately, no **confint** method associated with testFactor results. But you can reproduce univariate confidence intervals with **confint( mod,calpha = univariate_calpha())**method on glht objects obtained with **test = adjusted(type = "none")**
+```{r}
+glht.2.s <- summary(glht.2, test = adjusted(type = "none") )
+glht.2.s 
+glht.2.s$test$coefficients
+ghlt2.confint.u <- confint(glht.2.s, calpha = univariate_calpha() )
+ghlt2.confint.u$confint
+
+confint(mod.boik)[2,] == ghlt2.confint.u$confint[2,2:3]
+
+```
+This *trick* is used  because **confint** method  is not dispatched with testFactor results.
+```{r}
+fact.boik <- testFactors(mod.boik, levels=list(therapy=c('T1', 'T2'), medF='D2'), adjustment='none')
+confint(fact.boik)
+```
+
+
+
+
+
+
+
