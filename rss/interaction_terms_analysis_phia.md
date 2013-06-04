@@ -35,16 +35,16 @@ some(Boik)
 
 ```
 ##    therapy medication   edr
-## 4  control    placebo 51.42
-## 11 control         D1 52.87
+## 7  control         D1 45.59
+## 12 control         D1 44.75
+## 13 control         D2 47.64
 ## 16 control         D2 44.86
-## 22 control         D3 47.96
-## 27      T1    placebo 48.06
+## 20 control         D3 50.92
 ## 36      T1         D1 44.24
-## 37      T1         D2 28.99
-## 39      T1         D2 32.86
+## 44      T1         D3 11.61
 ## 50      T2    placebo 40.25
-## 66      T2         D2 29.39
+## 53      T2    placebo 45.22
+## 56      T2         D1 40.49
 ```
 
 ```r
@@ -242,7 +242,7 @@ con.therapy
 
 ```
 ## 
-## Call: blogify() 
+## Call: blogify(model = ".") 
 ## 
 ## Term (Intercept) 
 ## 

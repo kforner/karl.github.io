@@ -9,8 +9,962 @@
 <title>karl&#x27;s blog</title>
 <link>http://kforner.github.io</link>
 <description>R-related blog</description>
-<lastBuildDate>2013-05-30T14:49:02</lastBuildDate>
+<lastBuildDate>2013-06-04T16:18:11</lastBuildDate>
 
+<item>
+<title>Combine car, multcomp and phia to perform smarter linear modeling</title>
+<link>http://kforner.github.io/posts/interaction_terms_analysis_phia.html</link>
+<description>
+
+&#x3C;link href=&#x22;/http://kforner.github.io/libraries/frameworks/qb_rss/css/main.css&#x22; rel=&#x22;stylesheet&#x22; /&#x3E;
+&#x3C;link href=&#x22;/http://kforner.github.io/libraries/highlighters/prettify/css/twitter-bootstrap.css&#x22; rel=&#x22;stylesheet&#x22;&#x3E;
+
+	&#x3C;ul id=&#x22;page_def&#x22;&#x3E;
+		&#x3C;li id=&#x22;page_title&#x22;&#x3E;Combine car, multcomp and phia to perform smarter linear modeling&#x3C;/li&#x3E;
+		&#x3C;li&#x3E;&#x3C;BR&#x3E;&#x3C;/li&#x3E;
+		&#x3C;li id=&#x22;page_date&#x22;&#x3E;2013-05-27&#x3C;/li&#x3E;
+		&#x3C;li&#x3E;&#x3C;a id=&#x27;source_link&#x27; href=&#x27;/interaction_terms_analysis_phia.Rmd&#x27;&#x3E;Source&#x3C;/a&#x3E; 
+		&#x3C;/li&#x3E;
+	&#x3C;/ul&#x3E;
+
+&#x3C;div id=&#x22;post_content&#x22;&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;library(multcomp)
+library(car)
+library(effects)
+library(phia)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;h1&#x3E;Combine car, multcomp and phia to perform smarter linear modeling.&#x3C;/h1&#x3E;
+
+&#x3C;p&#x3E;These examples have been largely inpired by Helios De Rosario-Martinez &#x3C;helios.derosario at ibv.upv.es&#x3E; &#x3C;a href=&#x22;http://cran.r-project.org/web/packages/phia/vignettes/phia.pdf&#x22;&#x3E;vignette&#x3C;/a&#x3E; from the &#x3C;a href=&#x22;http://cran.r-project.org/web/packages/phia/index.html&#x22;&#x3E;phia&#x3C;/a&#x3E;. I recommend as well as the reading of &#x3C;a href=&#x22;http://cran.r-project.org/web/packages/multcomp/&#x22;&#x3E;mutlcomp&#x3C;/a&#x3E; textbook: &#x3C;a href=&#x22;http://www.amazon.co.uk/gp/product/1584885742/&#x22;&#x3E;Multiple Comparisons Using R&#x3C;/a&#x3E; from Multiple Comparisons from Torsten Hothorn, Frank Bretz and Peter Westfall. The &#x3C;a href=&#x22;http://socserv.socsci.mcmaster.ca/jfox/Books/Companion/index.html%20ressource%20is%20obviously%20a%20place%20to%20be%20:-&#x22;&#x3E;car&#x3C;/a&#x3E;.&#x3C;/p&#x3E;
+
+&#x3C;p class=&#x27;The&#x27;&#x3E;Boik data set from &#x3C;strong&#x3E;phia&#x3C;/strong&#x3E; is based on the hypothetical example used by R.J. Boik (1979) to explain the analysis of interaction contrasts. It represents the electrodermal response of 72 students complaining of hemophobia, treated with different fear reduction therapies and doses of antianxiety medication, in a balanced factorial design. The response variable &#x3C;strong&#x3E;edr&#x3C;/strong&#x3E; is modeled with two factors &#x3C;strong&#x3E;therapy&#x3C;/strong&#x3E;, with levels control, T1, and 
+T2 and &#x3C;strong&#x3E;medication&#x3C;/strong&#x3E;, with levels placebo, D1, D2, and D3 in interaction.&#x3C;/p&#x3E;
+
+&#x3C;h2&#x3E;Introduction&#x3C;/h2&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;some(Boik)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##    therapy medication   edr
+## 7  control         D1 45.59
+## 12 control         D1 44.75
+## 13 control         D2 47.64
+## 16 control         D2 44.86
+## 20 control         D3 50.92
+## 36      T1         D1 44.24
+## 44      T1         D3 11.61
+## 50      T2    placebo 40.25
+## 53      T2    placebo 45.22
+## 56      T2         D1 40.49
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;table(Boik[, 1:2])
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##          medication
+## therapy   placebo D1 D2 D3
+##   control       6  6  6  6
+##   T1            6  6  6  6
+##   T2            6  6  6  6
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;I chose to tweak a bit this data set to avoid using the medication as an ordered factor to ease my interpretation 
+of linear models outputs.&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;Boik$medF &#x26;lt;- factor(as.character(Boik$medication), levels = c(&#x26;quot;placebo&#x26;quot;, &#x26;quot;D1&#x26;quot;, &#x26;quot;D2&#x26;quot;, &#x26;quot;D3&#x26;quot;))
+levels(Boik$medF)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## [1] &#x26;quot;placebo&#x26;quot; &#x26;quot;D1&#x26;quot;      &#x26;quot;D2&#x26;quot;      &#x26;quot;D3&#x26;quot;
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;h2&#x3E;Fit two models with interaction and main effects only&#x3C;/h2&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;mod.boik &#x26;lt;- lm(edr ~ therapy * medF, data = Boik)
+mod.boik.M &#x26;lt;- lm(edr ~ therapy + medF, data = Boik)
+summary(mod.boik)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## 
+## Call:
+## lm(formula = edr ~ therapy * medF, data = Boik)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -11.358  -1.857   0.307   2.717   7.714 
+## 
+## Coefficients:
+##                  Estimate Std. Error t value Pr(&#x26;gt;|t|)    
+## (Intercept)        50.200      1.787   28.10  &#x26;lt; 2e-16 ***
+## therapyT1          -0.301      2.527   -0.12    0.906    
+## therapyT2          -4.501      2.527   -1.78    0.080 .  
+## medFD1             -2.701      2.527   -1.07    0.289    
+## medFD2             -4.201      2.527   -1.66    0.102    
+## medFD3             -2.301      2.527   -0.91    0.366    
+## therapyT1:medFD1   -8.998      3.573   -2.52    0.014 *  
+## therapyT2:medFD1   -3.899      3.573   -1.09    0.280    
+## therapyT1:medFD2  -17.199      3.573   -4.81  1.0e-05 ***
+## therapyT2:medFD2   -4.998      3.573   -1.40    0.167    
+## therapyT1:medFD3  -28.599      3.573   -8.00  4.8e-11 ***
+## therapyT2:medFD3  -10.699      3.573   -2.99    0.004 ** 
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1 
+## 
+## Residual standard error: 4.38 on 60 degrees of freedom
+## Multiple R-squared: 0.843,   Adjusted R-squared: 0.815 
+## F-statistic: 29.4 on 11 and 60 DF,  p-value: &#x26;lt;2e-16
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;Anova(mod.boik)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## Anova Table (Type II tests)
+## 
+## Response: edr
+##              Sum Sq Df F value  Pr(&#x26;gt;F)    
+## therapy        2444  2    63.8 1.4e-15 ***
+## medF           2371  3    41.3 1.3e-14 ***
+## therapy:medF   1376  6    12.0 8.5e-09 ***
+## Residuals      1149 60                    
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;h2&#x3E;Use allEffects(), and interactionMeans() to compute cells and marginal means&#x3C;/h2&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;boik.means &#x26;lt;- interactionMeans(mod.boik)
+boik.means
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##    therapy    medF adjusted mean
+## 1  control placebo          50.2
+## 2       T1 placebo          49.9
+## 3       T2 placebo          45.7
+## 4  control      D1          47.5
+## 5       T1      D1          38.2
+## 6       T2      D1          39.1
+## 7  control      D2          46.0
+## 8       T1      D2          28.5
+## 9       T2      D2          36.5
+## 10 control      D3          47.9
+## 11      T1      D3          19.0
+## 12      T2      D3          32.7
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;interactionMeans(mod.boik, factors = &#x26;quot;therapy&#x26;quot;)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##   therapy adjusted mean
+## 1 control          47.9
+## 2      T1          33.9
+## 3      T2          38.5
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;
+interactionMeans(mod.boik, factors = &#x26;quot;medF&#x26;quot;)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##      medF adjusted mean
+## 1 placebo          48.6
+## 2      D1          41.6
+## 3      D2          37.0
+## 4      D3          33.2
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;Several type of interaction plots  are available to visualise the &#x26;#39;interaction effect&#x26;#39;&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;plot(boik.means, multiple = TRUE)
+
+
+plot(allEffects(mod.boik))
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;&#x3C;img src=&#x22;http://kforner.github.io/posts/assets/fig/unnamed-chunk-6.png&#x22; alt=&#x22;plot of chunk unnamed-chunk-6&#x22;&#x3E; &#x3C;/p&#x3E;
+
+&#x3C;h2&#x3E;The phia package is remarkebly designed to compute  various contrasts of interests using testInteractions() function.&#x3C;/h2&#x3E;
+
+&#x3C;p&#x3E;The columns medication1, . . . medication3 in the resulting table contain the value of the three
+orthogonal contrasts across the levels of medication, for each level of therapy (the only fixed factor
+in this example). In addition a F test (actually a global F test) is performed for each level of therapy&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testInteractions(mod.boik, fixed = &#x26;quot;therapy&#x26;quot;, across = &#x26;quot;medF&#x26;quot;, adjustment = &#x26;quot;none&#x26;quot;)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## F Test: 
+## P-value adjustment method: none
+##           medF1 medF2 medF3 Df Sum of Sq     F  Pr(&#x26;gt;F)    
+## control     2.3  -0.4  -1.9  3        54  0.95    0.42    
+##      T1    30.9  19.2   9.5  3      3154 54.90 &#x26;lt; 2e-16 ***
+##      T2    13.0   6.4   3.8  3       539  9.38 3.6e-05 ***
+## Residuals                   60      1149                  
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;Behind the scene, &#x3C;strong&#x3E;testInteractions()&#x3C;/strong&#x3E; calls &#x3C;strong&#x3E;testFactors()&#x3C;/strong&#x3E;. The ones corresponding to the one above are detailed below.&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;con.therapy &#x26;lt;- testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;control&#x26;quot;)), 
+    terms.formula = ~medF, adjustment = &#x26;quot;none&#x26;quot;)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T1&#x26;quot;)), terms.formula = ~medF, 
+    adjustment = &#x26;quot;none&#x26;quot;)
+testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T2&#x26;quot;)), terms.formula = ~medF, 
+    adjustment = &#x26;quot;none&#x26;quot;)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;The cont.therapy ob&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;con.therapy
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## 
+## Call: blogify(model = &#x26;quot;.&#x26;quot;) 
+## 
+## Term (Intercept) 
+## 
+## Adjusted mean:
+##      
+## 47.9 
+## 
+## Linear hypothesis test
+## 
+## Hypothesis:
+## (Intercept)  + 0.25 medFD1  + 0.25 medFD2  + 0.25 medFD3 = 0
+## 
+## Model 1: restricted model
+## Model 2: edr ~ therapy * medF
+## 
+##   Res.Df   RSS Df Sum of Sq    F Pr(&#x26;gt;F)    
+## 1     61 56214                             
+## 2     60  1149  1     55065 2875 &#x26;lt;2e-16 ***
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1 
+## ------
+## 
+## Term medF 
+## 
+## Adjusted mean at contrasts of medF:
+##   medF1   medF2   medF3 
+##  2.3006 -0.4008 -1.8999 
+## 
+## Linear hypothesis test
+## 
+## Hypothesis:
+## - medFD3 = 0
+## medFD1 - medFD3 = 0
+## medFD2 - medFD3 = 0
+## 
+## Model 1: restricted model
+## Model 2: edr ~ therapy * medF
+## 
+##   Res.Df  RSS Df Sum of Sq     F Pr(&#x26;gt;F)
+## 1     63 1203                          
+## 2     60 1149  3     54.38 0.947  0.424
+## ------
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;names(con.therapy)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## [1] &#x26;quot;call&#x26;quot;             &#x26;quot;model.call&#x26;quot;       &#x26;quot;levels&#x26;quot;          
+## [4] &#x26;quot;factor.contrasts&#x26;quot; &#x26;quot;covariates&#x26;quot;       &#x26;quot;terms&#x26;quot;
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;It contains notably the hypothesis matrix done for a &#x3C;strong&#x3E;global F test&#x3C;/strong&#x3E; that test the non equality of the edr value for the designated therapy level across levels of medication. &#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;con.therapy$terms$`(Intercept)`$adjusted.values
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##      [,1]
+## [1,] 47.9
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;con.therapy$terms$medF$adjusted.values
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##          [,1]
+## medF1  2.3006
+## medF2 -0.4008
+## medF3 -1.8999
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;con.therapy$terms$medF$hypothesis.matrix
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##       (Intercept) therapyT1 therapyT2 medFD1 medFD2 medFD3
+## medF1           0         0         0      0      0     -1
+## medF2           0         0         0      1      0     -1
+## medF3           0         0         0      0      1     -1
+##       therapyT1:medFD1 therapyT2:medFD1 therapyT1:medFD2 therapyT2:medFD2
+## medF1                0                0                0                0
+## medF2                0                0                0                0
+## medF3                0                0                0                0
+##       therapyT1:medFD3 therapyT2:medFD3
+## medF1                0                0
+## medF2                0                0
+## medF3                0                0
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;The default contrasts definition used in the testInteractions() and testFactors() are takken from their default.contrasts=c(&#x26;quot;contr.sum&#x26;quot;,&#x26;quot;contr.poly&#x26;quot;), which is usually not the ones that were used by default in R (see below and the &#x3C;strong&#x3E;mod.boik&#x3C;/strong&#x3E; model).
+This is very  &#x3C;strong&#x3E;important&#x3C;/strong&#x3E; as it ensures that F tests and global F tests are meaningfull.&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;options(&#x26;quot;contrasts&#x26;quot;)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## $contrasts
+##         unordered           ordered 
+## &#x26;quot;contr.treatment&#x26;quot;      &#x26;quot;contr.poly&#x26;quot;
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;contr.sum(levels(Boik$medF))
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##         [,1] [,2] [,3]
+## placebo    1    0    0
+## D1         0    1    0
+## D2         0    0    1
+## D3        -1   -1   -1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;contr.treatment(levels(Boik$medF))
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##         D1 D2 D3
+## placebo  0  0  0
+## D1       1  0  0
+## D2       0  1  0
+## D3       0  0  1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;The therapy adjusted.values are computed using the folowing algebra.&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;# using the hypothesis matrix
+con.therapy$terms$medF$hypothesis.matrix %*% coef(mod.boik)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##          [,1]
+## medF1  2.3006
+## medF2 -0.4008
+## medF3 -1.8999
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;# which correponds to a contrasts sum options
+t(contr.sum(levels(Boik$medF))[-c(1), ]) %*% coef(mod.boik)[c(4:6)]
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##         [,1]
+## [1,]  2.3006
+## [2,] -0.4008
+## [3,] -1.8999
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;# the default contrast (the one used in the model and summary output) are
+# reprouced below
+t(contr.treatment(levels(Boik$medF))[-c(1), ]) %*% coef(mod.boik)[c(2:4)]
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##       [,1]
+## D1 -0.3008
+## D2 -4.5012
+## D3 -2.7014
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;h1&#x3E;How to obtain the same results with different functions&#x3C;/h1&#x3E;
+
+&#x3C;p&#x3E;Especially, how to reproduce classic univariates results.&#x3C;/p&#x3E;
+
+&#x3C;h2&#x3E;Obtain Anova global F interaction test with &#x3C;strong&#x3E;linearHypothesis()&#x3C;/strong&#x3E;.&#x3C;/h2&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;coefs &#x26;lt;- coefficients(mod.boik)
+coefs
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##      (Intercept)        therapyT1        therapyT2           medFD1 
+##          50.2004          -0.3008          -4.5012          -2.7014 
+##           medFD2           medFD3 therapyT1:medFD1 therapyT2:medFD1 
+##          -4.2005          -2.3006          -8.9975          -3.8985 
+## therapyT1:medFD2 therapyT2:medFD2 therapyT1:medFD3 therapyT2:medFD3 
+##         -17.1985          -4.9984         -28.5994         -10.6990
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;linearHypothesis(mod.boik, names(coefs)[7:12], verbose = TRUE)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## 
+## Hypothesis matrix:
+##                  (Intercept) therapyT1 therapyT2 medFD1 medFD2 medFD3
+## therapyT1:medFD1           0         0         0      0      0      0
+## therapyT2:medFD1           0         0         0      0      0      0
+## therapyT1:medFD2           0         0         0      0      0      0
+## therapyT2:medFD2           0         0         0      0      0      0
+## therapyT1:medFD3           0         0         0      0      0      0
+## therapyT2:medFD3           0         0         0      0      0      0
+##                  therapyT1:medFD1 therapyT2:medFD1 therapyT1:medFD2
+## therapyT1:medFD1                1                0                0
+## therapyT2:medFD1                0                1                0
+## therapyT1:medFD2                0                0                1
+## therapyT2:medFD2                0                0                0
+## therapyT1:medFD3                0                0                0
+## therapyT2:medFD3                0                0                0
+##                  therapyT2:medFD2 therapyT1:medFD3 therapyT2:medFD3
+## therapyT1:medFD1                0                0                0
+## therapyT2:medFD1                0                0                0
+## therapyT1:medFD2                0                0                0
+## therapyT2:medFD2                1                0                0
+## therapyT1:medFD3                0                1                0
+## therapyT2:medFD3                0                0                1
+## 
+## Right-hand-side vector:
+## [1] 0 0 0 0 0 0
+## 
+## Estimated linear function (hypothesis.matrix %*% coef - rhs)
+## therapyT1:medFD1 therapyT2:medFD1 therapyT1:medFD2 therapyT2:medFD2 
+##           -8.998           -3.899          -17.199           -4.998 
+## therapyT1:medFD3 therapyT2:medFD3 
+##          -28.599          -10.699
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## Linear hypothesis test
+## 
+## Hypothesis:
+## therapyT1:medFD1 = 0
+## therapyT2:medFD1 = 0
+## therapyT1:medFD2 = 0
+## therapyT2:medFD2 = 0
+## therapyT1:medFD3 = 0
+## therapyT2:medFD3 = 0
+## 
+## Model 1: restricted model
+## Model 2: edr ~ therapy * medF
+## 
+##   Res.Df  RSS Df Sum of Sq  F  Pr(&#x26;gt;F)    
+## 1     66 2525                            
+## 2     60 1149  6      1376 12 8.5e-09 ***
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;h2&#x3E;Obtain univariate linear model coefficients statistics done with &#x3C;strong&#x3E;summary()&#x3C;/strong&#x3E; with &#x3C;strong&#x3E;testFactors()&#x3C;/strong&#x3E;&#x3C;/h2&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;summary(mod.boik)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## 
+## Call:
+## lm(formula = edr ~ therapy * medF, data = Boik)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -11.358  -1.857   0.307   2.717   7.714 
+## 
+## Coefficients:
+##                  Estimate Std. Error t value Pr(&#x26;gt;|t|)    
+## (Intercept)        50.200      1.787   28.10  &#x26;lt; 2e-16 ***
+## therapyT1          -0.301      2.527   -0.12    0.906    
+## therapyT2          -4.501      2.527   -1.78    0.080 .  
+## medFD1             -2.701      2.527   -1.07    0.289    
+## medFD2             -4.201      2.527   -1.66    0.102    
+## medFD3             -2.301      2.527   -0.91    0.366    
+## therapyT1:medFD1   -8.998      3.573   -2.52    0.014 *  
+## therapyT2:medFD1   -3.899      3.573   -1.09    0.280    
+## therapyT1:medFD2  -17.199      3.573   -4.81  1.0e-05 ***
+## therapyT2:medFD2   -4.998      3.573   -1.40    0.167    
+## therapyT1:medFD3  -28.599      3.573   -8.00  4.8e-11 ***
+## therapyT2:medFD3  -10.699      3.573   -2.99    0.004 ** 
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1 
+## 
+## Residual standard error: 4.38 on 60 degrees of freedom
+## Multiple R-squared: 0.843,   Adjusted R-squared: 0.815 
+## F-statistic: 29.4 on 11 and 60 DF,  p-value: &#x26;lt;2e-16
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T1&#x26;quot;, &#x26;quot;control&#x26;quot;), medF = &#x26;quot;placebo&#x26;quot;), 
+    adjustment = &#x26;quot;none&#x26;quot;)$terms[[&#x26;quot;(Intercept)&#x26;quot;]]$test
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## Linear hypothesis test
+## 
+## Hypothesis:
+## therapyT1 = 0
+## 
+## Model 1: restricted model
+## Model 2: edr ~ therapy * medF
+## 
+##   Res.Df  RSS Df Sum of Sq    F Pr(&#x26;gt;F)
+## 1     61 1149                         
+## 2     60 1149  1     0.272 0.01   0.91
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T2&#x26;quot;, &#x26;quot;control&#x26;quot;), medF = &#x26;quot;placebo&#x26;quot;), 
+    adjustment = &#x26;quot;none&#x26;quot;)$terms[[&#x26;quot;(Intercept)&#x26;quot;]]$test
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## Linear hypothesis test
+## 
+## Hypothesis:
+## therapyT2 = 0
+## 
+## Model 1: restricted model
+## Model 2: edr ~ therapy * medF
+## 
+##   Res.Df  RSS Df Sum of Sq    F Pr(&#x26;gt;F)  
+## 1     61 1210                           
+## 2     60 1149  1      60.8 3.17   0.08 .
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testFactors(mod.boik, levels = list(medF = c(&#x26;quot;D1&#x26;quot;, &#x26;quot;placebo&#x26;quot;), therapy = &#x26;quot;control&#x26;quot;), 
+    adjustment = &#x26;quot;none&#x26;quot;)$terms[[&#x26;quot;(Intercept)&#x26;quot;]]$test
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## Linear hypothesis test
+## 
+## Hypothesis:
+## medFD1 = 0
+## 
+## Model 1: restricted model
+## Model 2: edr ~ therapy * medF
+## 
+##   Res.Df  RSS Df Sum of Sq    F Pr(&#x26;gt;F)
+## 1     61 1171                         
+## 2     60 1149  1      21.9 1.14   0.29
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testFactors(mod.boik, levels = list(medF = c(&#x26;quot;D2&#x26;quot;, &#x26;quot;placebo&#x26;quot;), therapy = &#x26;quot;control&#x26;quot;), 
+    adjustment = &#x26;quot;none&#x26;quot;)$terms[[&#x26;quot;(Intercept)&#x26;quot;]]$test
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## Linear hypothesis test
+## 
+## Hypothesis:
+## medFD2 = 0
+## 
+## Model 1: restricted model
+## Model 2: edr ~ therapy * medF
+## 
+##   Res.Df  RSS Df Sum of Sq    F Pr(&#x26;gt;F)
+## 1     61 1202                         
+## 2     60 1149  1      52.9 2.76    0.1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;# D3 versus placebo in control group.
+testFactors(mod.boik, levels = list(medF = c(&#x26;quot;D3&#x26;quot;, &#x26;quot;placebo&#x26;quot;), therapy = &#x26;quot;control&#x26;quot;), 
+    adjustment = &#x26;quot;none&#x26;quot;)$terms[[&#x26;quot;(Intercept)&#x26;quot;]]$adjusted.values
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##        [,1]
+## [1,] -2.301
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testFactors(mod.boik, levels = list(medF = c(&#x26;quot;D3&#x26;quot;, &#x26;quot;placebo&#x26;quot;), therapy = &#x26;quot;control&#x26;quot;), 
+    adjustment = &#x26;quot;none&#x26;quot;)$terms[[&#x26;quot;(Intercept)&#x26;quot;]]$test
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## Linear hypothesis test
+## 
+## Hypothesis:
+## medFD3 = 0
+## 
+## Model 1: restricted model
+## Model 2: edr ~ therapy * medF
+## 
+##   Res.Df  RSS Df Sum of Sq    F Pr(&#x26;gt;F)
+## 1     61 1165                         
+## 2     60 1149  1      15.9 0.83   0.37
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;# match the meanInteractions data.frame
+boik.means[10, 3] - boik.means[1, 3]
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## [1] -2.301
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;h2&#x3E;&#x3C;strong&#x3E;testInteractions()&#x3C;/strong&#x3E; can compute pairwise contrasts very fluidly &#x3C;strong&#x3E;BUT&#x3C;/strong&#x3E;&#x3C;/h2&#x3E;
+
+&#x3C;p&#x3E;First remember that the testInteraction must used orthonomal contrasts (default.contrasts=c(&#x26;quot;contr.sum&#x26;quot;,&#x26;quot;contr.poly&#x26;quot;)).
+Below, despites the fact that all pairwise combinations were performed, the adjusted means don&#x26;#39;t correspond 
+straightforwardly  to the &#x26;#39;classic&#x26;#39; all pairwise group differences&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testInteractions(mod.boik, pairwise = &#x26;quot;therapy&#x26;quot;, across = &#x26;quot;medF&#x26;quot;, adjustment = &#x26;quot;none&#x26;quot;)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## F Test: 
+## P-value adjustment method: none
+##            medF1 medF2 medF3 Df Sum of Sq     F  Pr(&#x26;gt;F)    
+## control-T1 -28.6 -19.6 -11.4  3      1332 23.19 4.3e-10 ***
+## control-T2 -10.7  -6.8  -5.7  3       176  3.06   0.035 *  
+##      T1-T2  17.9  12.8   5.7  3       557  9.69 2.6e-05 ***
+## Residuals                    60      1149                  
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;It you&#x26;#39;re in hurry, you could tweak the call, by changing the default contrasts, &#x3C;strong&#x3E;BUT THEN THE F GLOBAL TEST ARE NOT MEANINGFUL ANYMORE&#x3C;/strong&#x3E;
+So don&#x26;#39;t do that except if you know what you are doing.&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;# !!! THE F TEST IN EACH ROW ARE NOT MEANINGFUL
+# -----------------------------------------------------------------------------------------------
+testInteractions(mod.boik, pairwise = &#x26;quot;therapy&#x26;quot;, across = &#x26;quot;medF&#x26;quot;, adjustment = &#x26;quot;none&#x26;quot;, 
+    default.contrasts = c(&#x26;quot;contr.treatment&#x26;quot;, &#x26;quot;contr.poly&#x26;quot;))
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## Warning: Contrasts are not orthogonal for factor(s): therapy
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## Warning: Contrasts are not orthogonal for factor(s): therapy
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## Warning: Contrasts are not orthogonal for factor(s): therapy
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## F Test: 
+## P-value adjustment method: none
+##            medF1 medF2 medF3 Df Sum of Sq    F Pr(&#x26;gt;F)    
+## control-T1   9.3  17.5  28.9  3      3684 64.1 &#x26;lt;2e-16 ***
+## control-T2   8.4   9.5  15.2  3      1176 20.5  3e-09 ***
+##      T1-T2  -0.9  -8.0 -13.7  3       757 13.2  1e-06 ***
+## Residuals                    60      1149                
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;
+testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T1&#x26;quot;, &#x26;quot;T2&#x26;quot;), medF = &#x26;quot;D1&#x26;quot;), adjustment = &#x26;quot;none&#x26;quot;)$terms[[&#x26;quot;(Intercept)&#x26;quot;]]$adjusted.values
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##         [,1]
+## [1,] -0.8987
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T1&#x26;quot;, &#x26;quot;T2&#x26;quot;), medF = &#x26;quot;D2&#x26;quot;), adjustment = &#x26;quot;none&#x26;quot;)$terms[[&#x26;quot;(Intercept)&#x26;quot;]]$adjusted.values
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##      [,1]
+## [1,]   -8
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;h2&#x3E;testInteractions() and the &#x3C;strong&#x3E;custom&#x3C;/strong&#x3E; argument.&#x3C;/h2&#x3E;
+
+&#x3C;p&#x3E;First, as ususal testInteractions() makes calls to testFactors. Without any arguments specified, it does the folowing default comparisons.&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testInteractions(mod.boik, adjustment = &#x26;quot;none&#x26;quot;)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## F Test: 
+## P-value adjustment method: none
+##                         Value Df Sum of Sq     F  Pr(&#x26;gt;F)    
+## control-T1 : placebo-D1  -9.0  1       121  6.34 0.01448 *  
+## control-T2 : placebo-D1  -3.9  1        23  1.19 0.27960    
+##      T1-T2 : placebo-D1   5.1  1        39  2.04 0.15874    
+## control-T1 : placebo-D2 -17.2  1       444 23.17 1.0e-05 ***
+## control-T2 : placebo-D2  -5.0  1        37  1.96 0.16699    
+##      T1-T2 : placebo-D2  12.2  1       223 11.66 0.00115 ** 
+## control-T1 : placebo-D3 -28.6  1      1227 64.07 4.8e-11 ***
+## control-T2 : placebo-D3 -10.7  1       172  8.97 0.00399 ** 
+##      T1-T2 : placebo-D3  17.9  1       481 25.10 5.1e-06 ***
+## control-T1 :      D1-D2  -8.2  1       101  5.27 0.02523 *  
+## control-T2 :      D1-D2  -1.1  1         2  0.09 0.75929    
+##      T1-T2 :      D1-D2   7.1  1        76  3.95 0.05145 .  
+## control-T1 :      D1-D3 -19.6  1       576 30.10 8.7e-07 ***
+## control-T2 :      D1-D3  -6.8  1        69  3.62 0.06181 .  
+##      T1-T2 :      D1-D3  12.8  1       246 12.84 0.00068 ***
+## control-T1 :      D2-D3 -11.4  1       195 10.18 0.00226 ** 
+## control-T2 :      D2-D3  -5.7  1        49  2.55 0.11587    
+##      T1-T2 :      D2-D3   5.7  1        49  2.55 0.11590    
+## Residuals                     60      1149                  
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T1&#x26;quot;, &#x26;quot;T2&#x26;quot;), medF = c(&#x26;quot;D1&#x26;quot;, 
+    &#x26;quot;D2&#x26;quot;)), adjustment = &#x26;quot;none&#x26;quot;)$terms[[&#x26;quot;(Intercept)&#x26;quot;]]
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## $numeric.variables
+## [1] &#x26;quot;(Intercept)&#x26;quot;
+## 
+## $factor.variables
+## character(0)
+## 
+## $hypothesis.matrix
+##      (Intercept) therapyT1 therapyT2 medFD1 medFD2 medFD3 therapyT1:medFD1
+## [1,]           0         0         0      0      0      0                1
+##      therapyT2:medFD1 therapyT1:medFD2 therapyT2:medFD2 therapyT1:medFD3
+## [1,]               -1               -1                1                0
+##      therapyT2:medFD3
+## [1,]                0
+## 
+## $adjusted.values
+##       [,1]
+## [1,] 7.101
+## 
+## $test
+## Linear hypothesis test
+## 
+## Hypothesis:
+## therapyT1:medFD1 - therapyT2:medFD1 - therapyT1:medFD2  + therapyT2:medFD2 = 0
+## 
+## Model 1: restricted model
+## Model 2: edr ~ therapy * medF
+## 
+##   Res.Df  RSS Df Sum of Sq    F Pr(&#x26;gt;F)  
+## 1     61 1225                           
+## 2     60 1149  1      75.6 3.95  0.051 .
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;# But We can compare the calculations and see how testInteraction calls
+# testFactors()
+testInteractions(mod.boik, adjustment = &#x26;quot;none&#x26;quot;)[12, ]
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## F Test: 
+## P-value adjustment method: none
+##                         Value Df Sum of Sq    F Pr(&#x26;gt;F)  
+##      T1-T2 :      D1-D2   7.1  1      75.6 3.95  0.051 .
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T1&#x26;quot;, &#x26;quot;T2&#x26;quot;), medF = c(&#x26;quot;D1&#x26;quot;, 
+    &#x26;quot;D2&#x26;quot;)), adjustment = &#x26;quot;none&#x26;quot;)$terms[[&#x26;quot;(Intercept)&#x26;quot;]]$adjusted.values
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##       [,1]
+## [1,] 7.101
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T1&#x26;quot;, &#x26;quot;T2&#x26;quot;), medF = c(&#x26;quot;D1&#x26;quot;, 
+    &#x26;quot;D2&#x26;quot;)), adjustment = &#x26;quot;none&#x26;quot;)$terms[[&#x26;quot;(Intercept)&#x26;quot;]]$test[&#x26;quot;Pr(&#x26;gt;F)&#x26;quot;]
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##   Pr(&#x26;gt;F)  
+## 1         
+## 2  0.051 .
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;We can build custom contrast matrices. The code is directly inspired from testFactors() one.&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;faclist &#x26;lt;- lapply(Boik[, 1:2], levels)
+faclist
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## $therapy
+## [1] &#x26;quot;control&#x26;quot; &#x26;quot;T1&#x26;quot;      &#x26;quot;T2&#x26;quot;     
+## 
+## $medication
+## [1] &#x26;quot;placebo&#x26;quot; &#x26;quot;D1&#x26;quot;      &#x26;quot;D2&#x26;quot;      &#x26;quot;D3&#x26;quot;
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;facmat.sum &#x26;lt;- lapply(faclist, contr.sum)  # default contr.sum matrices used by testFactors()
+facmat.sum
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## $therapy
+##         [,1] [,2]
+## control    1    0
+## T1         0    1
+## T2        -1   -1
+## 
+## $medication
+##         [,1] [,2] [,3]
+## placebo    1    0    0
+## D1         0    1    0
+## D2         0    0    1
+## D3        -1   -1   -1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;T1.T2.vs.Placebo.D3 &#x26;lt;- list(therapy = facmat.sum$therapy[, 2, drop = F], medF = facmat.sum$medication[, 
+    1, drop = F])
+T1.T2.vs.Placebo.D3
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## $therapy
+##         [,1]
+## control    0
+## T1         1
+## T2        -1
+## 
+## $medF
+##         [,1]
+## placebo    1
+## D1         0
+## D2         0
+## D3        -1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testInteractions(mod.boik, custom = T1.T2.vs.Placebo.D3, adjustment = &#x26;quot;none&#x26;quot;)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## F Test: 
+## P-value adjustment method: none
+##                  Value Df Sum of Sq    F  Pr(&#x26;gt;F)    
+## therapy1 : medF1  17.9  1       481 25.1 5.1e-06 ***
+## Residuals              60      1149                 
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testInteractions(mod.boik, custom = T1.T2.vs.Placebo.D3, adjustment = &#x26;quot;none&#x26;quot;)$Value
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## [1] 17.9   NA
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;testInteractions(mod.boik, custom = T1.T2.vs.Placebo.D3, adjustment = &#x26;quot;none&#x26;quot;)[[&#x26;quot;Pr(&#x26;gt;F)&#x26;quot;]]
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## [1] 5.102e-06        NA
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;h2&#x3E;Hypothesis matrix  (from testFactors() calls) can be reinjected  in the glht framework.&#x3C;/h2&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;K1 &#x26;lt;- summary(testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T1&#x26;quot;, &#x26;quot;T2&#x26;quot;), medF = &#x26;quot;D2&#x26;quot;), 
+    adjustment = &#x26;quot;none&#x26;quot;))
+K2 &#x26;lt;- summary(testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T1&#x26;quot;, &#x26;quot;control&#x26;quot;), 
+    medF = &#x26;quot;placebo&#x26;quot;), adjustment = &#x26;quot;none&#x26;quot;))  # This is a default contrast (compute in summary.lm and confint.lm)
+K &#x26;lt;- rbind(K1$hypothesis.matrix, lfinfct = K2$hypothesis.matrix)
+row.names(K) &#x26;lt;- c(&#x26;quot;T1.vs.T2.in.D2&#x26;quot;, &#x26;quot;T1.vs.control.in.placebo&#x26;quot;)
+set.seed(1)
+# The contrast matrix extracted from the testFactors result can be used in
+# place
+set.seed(1)
+glht.2 &#x26;lt;- glht(mod.boik, linfct = as.matrix(K))
+# use glht to compute user defined contrasts with the benefit of joint
+# confidence interval estimates and multiple testing correction.
+summary(glht.2)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## 
+##   Simultaneous Tests for General Linear Hypotheses
+## 
+## Fit: lm(formula = edr ~ therapy * medF, data = Boik)
+## 
+## Linear Hypotheses:
+##                               Estimate Std. Error t value Pr(&#x26;gt;|t|)   
+## T1.vs.T2.in.D2 == 0             -8.000      2.527   -3.17   0.0048 **
+## T1.vs.control.in.placebo == 0   -0.301      2.527   -0.12   0.9910   
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1 
+## (Adjusted p values reported -- single-step method)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;confint(glht.2)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## 
+##   Simultaneous Confidence Intervals
+## 
+## Fit: lm(formula = edr ~ therapy * medF, data = Boik)
+## 
+## Quantile = 2.292
+## 95% family-wise confidence level
+##  
+## 
+## Linear Hypotheses:
+##                               Estimate lwr     upr    
+## T1.vs.T2.in.D2 == 0            -8.000  -13.791  -2.208
+## T1.vs.control.in.placebo == 0  -0.301   -6.092   5.491
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;These result are &#x3C;em&#x3E;obviously&#x3C;/em&#x3E; different from the ones obtained with univariate methods with no correction for multiple testing.&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;mod.boik
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## 
+## Call:
+## lm(formula = edr ~ therapy * medF, data = Boik)
+## 
+## Coefficients:
+##      (Intercept)         therapyT1         therapyT2            medFD1  
+##           50.200            -0.301            -4.501            -2.701  
+##           medFD2            medFD3  therapyT1:medFD1  therapyT2:medFD1  
+##           -4.201            -2.301            -8.998            -3.899  
+## therapyT1:medFD2  therapyT2:medFD2  therapyT1:medFD3  therapyT2:medFD3  
+##          -17.199            -4.998           -28.599           -10.699
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;confint(mod.boik)[2, ]  # This is &#x26;#39;T1.vs.control.in.placebo&#x26;#39; default contrast (computed in summary.lm and confint.lm)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##  2.5 % 97.5 % 
+## -5.355  4.753
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;h2&#x3E;Obtain non corrected for multiple testing  p-values and univariate confidence intervals with glht&#x3C;/h2&#x3E;
+
+&#x3C;p&#x3E;There is unfortunately, no &#x3C;strong&#x3E;confint&#x3C;/strong&#x3E; method associated with testFactor results. But you can reproduce univariate confidence intervals with &#x3C;strong&#x3E;confint( mod,calpha = univariate_calpha())&#x3C;/strong&#x3E;method on glht objects obtained with &#x3C;strong&#x3E;test = adjusted(type = &#x26;quot;none&#x26;quot;)&#x3C;/strong&#x3E;&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;glht.2.s &#x26;lt;- summary(glht.2, test = adjusted(type = &#x26;quot;none&#x26;quot;))
+glht.2.s
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## 
+##   Simultaneous Tests for General Linear Hypotheses
+## 
+## Fit: lm(formula = edr ~ therapy * medF, data = Boik)
+## 
+## Linear Hypotheses:
+##                               Estimate Std. Error t value Pr(&#x26;gt;|t|)   
+## T1.vs.T2.in.D2 == 0             -8.000      2.527   -3.17   0.0024 **
+## T1.vs.control.in.placebo == 0   -0.301      2.527   -0.12   0.9056   
+## ---
+## Signif. codes:  0 &#x26;#39;***&#x26;#39; 0.001 &#x26;#39;**&#x26;#39; 0.01 &#x26;#39;*&#x26;#39; 0.05 &#x26;#39;.&#x26;#39; 0.1 &#x26;#39; &#x26;#39; 1 
+## (Adjusted p values reported -- none method)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;glht.2.s$test$coefficients
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##           T1.vs.T2.in.D2 T1.vs.control.in.placebo 
+##                  -7.9998                  -0.3008
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;ghlt2.confint.u &#x26;lt;- confint(glht.2.s, calpha = univariate_calpha())
+ghlt2.confint.u$confint
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##                          Estimate     lwr    upr
+## T1.vs.T2.in.D2            -7.9998 -13.054 -2.946
+## T1.vs.control.in.placebo  -0.3008  -5.355  4.753
+## attr(,&#x26;quot;conf.level&#x26;quot;)
+## [1] 0.95
+## attr(,&#x26;quot;calpha&#x26;quot;)
+## [1] 2
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;
+confint(mod.boik)[2, ] == ghlt2.confint.u$confint[2, 2:3]
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;##  2.5 % 97.5 % 
+##   TRUE   TRUE
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;p&#x3E;This &#x3C;em&#x3E;trick&#x3C;/em&#x3E; is used  because &#x3C;strong&#x3E;confint&#x3C;/strong&#x3E; method  is not dispatched with testFactor results.&#x3C;/p&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;fact.boik &#x26;lt;- testFactors(mod.boik, levels = list(therapy = c(&#x26;quot;T1&#x26;quot;, &#x26;quot;T2&#x26;quot;), medF = &#x26;quot;D2&#x26;quot;), 
+    adjustment = &#x26;quot;none&#x26;quot;)
+confint(fact.boik)
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;pre&#x3E;&#x3C;code&#x3E;## Error: no applicable method for &#x26;#39;vcov&#x26;#39; applied to an object of class
+## &#x26;quot;c(&#x26;#39;testFactors.lm&#x26;#39;, &#x26;#39;testFactors&#x26;#39;)&#x26;quot;
+&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
+
+&#x3C;/div&#x3E;
+</description>
+</item>
 <item>
 <title>A dirty hack for importing packages that use Depends</title>
 <link>http://kforner.github.io/posts/package-depends-dirty-hack-solution.html</link>
@@ -110,21 +1064,11 @@ l &#x26;lt;- loadNamespace(&#x26;quot;multcomp&#x26;quot;)  # assignment to avoi
 amod &#x26;lt;- aov(breaks ~ wool + tension, data = warpbreaks)
 wht &#x26;lt;- multcomp::glht(amod, linfct = multcomp::mcp(tension = &#x26;quot;Tukey&#x26;quot;))
 ci &#x26;lt;- confint(wht)  # mvtnorm::qmvt is not found, because mvtnorm is not attached to the search path
-&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
 
-&#x3C;pre&#x3E;&#x3C;code&#x3E;## Error: could not find function &#x26;quot;qmvt&#x26;quot;
-&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
-
-&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;
 # let&#x26;#39;s load the mvtnorm namespace
 l &#x26;lt;- loadNamespace(&#x26;quot;mvtnorm&#x26;quot;)
 ci &#x26;lt;- confint(wht)  # mvtnorm::qmvt still not found, mvtnorm is loaded but not attached
-&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
 
-&#x3C;pre&#x3E;&#x3C;code&#x3E;## Error: could not find function &#x26;quot;qmvt&#x26;quot;
-&#x3C;/code&#x3E;&#x3C;/pre&#x3E;
-
-&#x3C;pre&#x3E;&#x3C;code class=&#x22;r&#x22;&#x3E;
 # hack hack hack: re-route package multcomp to mvtnorm
 ns1 &#x26;lt;- getNamespace(&#x26;quot;multcomp&#x26;quot;)
 ns1_imp &#x26;lt;- parent.env(ns1)
@@ -142,15 +1086,15 @@ print(ci)
 ## 
 ## Fit: aov(formula = breaks ~ wool + tension, data = warpbreaks)
 ## 
-## Quantile = 2.416
+## Quantile = 2.415
 ## 95% family-wise confidence level
 ##  
 ## 
 ## Linear Hypotheses:
 ##            Estimate lwr     upr    
-## M - L == 0 -10.000  -19.355  -0.645
-## H - L == 0 -14.722  -24.077  -5.367
-## H - M == 0  -4.722  -14.077   4.633
+## M - L == 0 -10.000  -19.354  -0.646
+## H - L == 0 -14.722  -24.076  -5.369
+## H - M == 0  -4.722  -14.076   4.631
 &#x3C;/code&#x3E;&#x3C;/pre&#x3E;
 
 &#x3C;h2&#x3E;implementation of the hack in MyPkg&#x3C;/h2&#x3E;
